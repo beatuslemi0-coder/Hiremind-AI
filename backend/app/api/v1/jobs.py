@@ -96,37 +96,7 @@ def get_all_jobs(
 
 
 # ============================================================
-# 3. GET ONE JOB
-# ============================================================
-
-@router.get(
-    "/{job_id}",
-    response_model=JobResponse
-)
-def get_job(
-    job_id: int,
-    db: Session = Depends(get_db)
-):
-    # Tunatafuta job kwa kutumia ID.
-    job = (
-        db.query(Job)
-        .filter(Job.id == job_id)
-        .first()
-    )
-
-    # Kama job haipo, tunarudisha 404.
-    if job is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Job not found."
-        )
-
-    # Tunamrudishia user taarifa za job.
-    return job
-
-
-# ============================================================
-# 4. GET EMPLOYER'S JOBS
+# 3. GET EMPLOYER'S JOBS
 # ============================================================
 
 @router.get(
@@ -154,6 +124,36 @@ def get_my_jobs(
 
     # Tunamrudishia employer jobs zake.
     return jobs
+
+
+# ============================================================
+# 4. GET ONE JOB
+# ============================================================
+
+@router.get(
+    "/{job_id}",
+    response_model=JobResponse
+)
+def get_job(
+    job_id: int,
+    db: Session = Depends(get_db)
+):
+    # Tunatafuta job kwa kutumia ID.
+    job = (
+        db.query(Job)
+        .filter(Job.id == job_id)
+        .first()
+    )
+
+    # Kama job haipo, tunarudisha 404.
+    if job is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Job not found."
+        )
+
+    # Tunamrudishia user taarifa za job.
+    return job
 
 
 # ============================================================

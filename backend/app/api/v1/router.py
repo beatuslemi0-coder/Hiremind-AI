@@ -18,6 +18,7 @@ from app.api.v1.work_experience import router as work_experience_router
 from app.api.v1.jobs import router as jobs_router
 # Tuna-import application router ili endpoints zake zipatikane kwenye API.
 from app.api.v1.applications import router as applications_router
+from app.api.v1.reports import router as reports_router
 
 
 
@@ -43,3 +44,4 @@ router.include_router(education_router)
 router.include_router(work_experience_router)
 router.include_router(jobs_router)
 router.include_router(applications_router)
+router.include_router(reports_router)

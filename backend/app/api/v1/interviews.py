@@ -1,5 +1,8 @@
 # APIRouter inatusaidia kutengeneza endpoints za interviews.
 from fastapi import APIRouter, Depends, HTTPException,UploadFile,File, status
+import asyncio
+import logging
+import re
 
 
 # SQLAlchemy Session kwa ajili ya database.
@@ -31,6 +34,7 @@ from app.models.document import Document
 # Library ya Whisper kwa kubadilisha sauti kuwa maandishi.
 import whisper
 from app.models.question import Question
+from app.models.answer import Answer
 
 
 def _ensure_ffmpeg() -> bool:
@@ -62,6 +66,8 @@ from app.models.application import Application
 
 # Tuna-import Job ili kuhakikisha application inahusiana na job sahihi.
 from app.models.job import Job
+
+logger = logging.getLogger(__name__)
 
 
 
@@ -98,15 +104,48 @@ def _is_gemini_quota_error(exc: Exception) -> bool:
     return "resource_exhausted" in message or "quota" in message or "429" in message
 
 
-def _fallback_question(job: Job, question_number: int = 1) -> str:
+def _normalize_question(text: str) -> str:
+    return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9\s]", "", text.lower())).strip()
+
+
+def _initial_fallback_question(job: Job) -> str:
+    skills = (job.skills_required or "").strip()
+    if skills:
+        return (
+            f"Kwa kuzingatia nafasi ya {job.title} na mahitaji ya ujuzi ya {skills}, "
+            "eleza uzoefu wako wa vitendo unaohusiana na kazi hii."
+        )
+    return (
+        f"Kwa kuzingatia nafasi ya {job.title}, eleza uzoefu wako wa vitendo "
+        "unaokufanya ufaae kwa kazi hii."
+    )
+
+
+def _fallback_question(
+    job: Job,
+    question_number: int = 1,
+    previous_questions: list[str] | None = None,
+    candidate_answer: str = "",
+) -> str:
+    answer_topic = "uzoefu ulioutaja kwenye jibu lako" if candidate_answer.strip() else "ulichokieleza kwenye jibu lako"
     questions = [
-        f"Kwa nini unaamini unafaa kwa nafasi ya {job.title}, na ni uzoefu gani unaohusiana na nafasi hii?",
-        f"Kwa nafasi ya {job.title}, eleza hatua ulizochukua katika kutatua changamoto ya kazi na matokeo uliyapata.",
-        f"Ni ujuzi gani muhimu unaoutumia katika nafasi ya {job.title}, na umeutumia katika kazi au mradi gani?",
-        f"Eleza wakati uliposhirikiana na timu kutimiza lengo katika kazi inayohusiana na {job.title}.",
-        f"Ukipewa jukumu jipya katika nafasi ya {job.title}, utaanza kwa hatua gani na kwa nini?",
+        f"Umetaja {answer_topic}; ni matokeo gani ya kupimika uliyapata katika hilo?",
+        f"Ni changamoto gani kubwa ulikutana nayo katika {answer_topic}, na uliitatua kwa hatua zipi?",
+        f"Katika {answer_topic}, ulifanya uamuzi gani muhimu na kwa nini uliuchagua?",
+        f"Ulishirikiana vipi na timu katika {answer_topic}, na wewe ulikuwa na jukumu gani?",
+        f"Ulipimaje mafanikio ya {answer_topic}, na ungeboresha nini leo?",
+        f"Ni ujuzi gani wa kiufundi uliohusika katika {answer_topic}, na uliutumiaje kwa vitendo?",
+        f"Ukipewa hali kama ya {answer_topic} katika nafasi ya {job.title}, ungeanza na hatua gani?",
+        f"Umejifunza nini kutokana na {answer_topic}, na somo hilo linakusaidiaje kazini?",
+        f"Eleza namna ulivyowasilisha taarifa kuhusu {answer_topic} kwa mtu ambaye si mtaalamu.",
+        f"Ni hatari gani uliyoiona katika {answer_topic}, na uliichukulia hatua gani?",
     ]
-    return questions[(question_number - 1) % len(questions)]
+    used = {_normalize_question(question) for question in (previous_questions or [])}
+    for offset in range(len(questions)):
+        candidate = questions[(question_number - 1 + offset) % len(questions)]
+        if _normalize_question(candidate) not in used:
+            return candidate
+    return f"Kwa kuzingatia jibu lako kuhusu {answer_topic}, ni jambo gani jingine muhimu ungependa kuongeza?"
 
 
 # Endpoint hii inaanzisha interview mpya kwa candidate.
@@ -139,11 +178,11 @@ def start_interview(
             detail="Application not found"
 
         )
-    # Pending applications can start the interview after registration.
-    if application.status not in {"pending", "shortlisted", "accepted"}:
+    # Employers must shortlist or accept an application before the interview.
+    if application.status not in {"shortlisted", "accepted"}:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="This application is not available for an interview"
+            detail="The employer has not approved this application for an interview yet"
         )
     #Tunatafuta job inayohusiana na application
     job = (
@@ -230,7 +269,7 @@ def start_interview(
         )
     except Exception as exc:
         if _is_gemini_quota_error(exc):
-            first_question = _fallback_question(job, question_number=1)
+            first_question = _initial_fallback_question(job)
         else:
             raise _ai_service_http_error(exc) from exc
 
@@ -578,9 +617,23 @@ async def upload_voice_answer(
 
     # Whisper inasoma sauti na kuitengeneza kuwa text.
     # Hapa tunaacha Whisper itambue lugha yenyewe.
-    result = whisper_model.transcribe(
-        str(file_path)
-    )
+    try:
+        result = await asyncio.wait_for(
+            asyncio.to_thread(whisper_model.transcribe, str(file_path)),
+            timeout=90,
+        )
+    except asyncio.TimeoutError as exc:
+        logger.error("Whisper timed out for interview %s", interview_id)
+        raise HTTPException(
+            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+            detail="Audio transcription timed out. Please record a shorter answer and try again.",
+        ) from exc
+    except Exception as exc:
+        logger.exception("Whisper failed for interview %s", interview_id)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Audio transcription failed: {exc}",
+        ) from exc
 
     # Tunachukua transcription.
     candidate_answer = result["text"].strip()
@@ -593,6 +646,32 @@ async def upload_voice_answer(
             status_code=400,
             detail="Could not understand the candidate's voice"
         )
+
+    db.add(Answer(
+        question_id=current_question.id,
+        answer_text=candidate_answer,
+        score=min(100.0, max(0.0, len(candidate_answer.split()) * 2.5)),
+        ai_feedback="Jibu limepokelewa na kuhifadhiwa kwa ajili ya tathmini ya interview.",
+    ))
+    db.commit()
+
+    if current_question.order_number >= 10:
+        InterviewService.complete_interview(
+            db=db,
+            interview_id=interview.id,
+            user_id=current_user.id,
+        )
+        return {
+            "message": "Interview completed successfully",
+            "interview_id": interview.id,
+            "question_id": current_question.id,
+            "transcription": candidate_answer,
+            "next_question_id": None,
+            "next_question": None,
+            "interview_completed": True,
+            "closing_message": "Asante kwa ushirikiano wako. Karibu uangalie report yako.",
+            "audio_url": None,
+        }
 
 
     # ---------------------------------------------------------
@@ -651,19 +730,53 @@ async def upload_voice_answer(
     {job.skills_required or "Not specified"}
     """
 
+    previous_questions = [
+        question.question_text
+        for question in db.query(Question)
+        .filter(Question.interview_id == interview_id)
+        .order_by(Question.order_number.asc())
+        .all()
+    ]
+
    # Tunapeleka CV, Job, swali la sasa na jibu la candidate kwa Gemini.
    # AI itatumia taarifa hizi kutengeneza follow-up question.
     try:
-        next_question = AIService.analyze_answer_and_generate_next_question(
-            candidate_information=cv_text,
-            job_information=job_information,
-            current_question=current_question.question_text,
-            candidate_answer=candidate_answer
+        next_question = await asyncio.wait_for(
+            asyncio.to_thread(
+                AIService.analyze_answer_and_generate_next_question,
+                candidate_information=cv_text,
+                job_information=job_information,
+                current_question=current_question.question_text,
+                candidate_answer=candidate_answer,
+                previous_questions=previous_questions,
+            ),
+            timeout=25,
         )
-    except Exception as exc:
+    except asyncio.TimeoutError:
+        logger.warning("Gemini timed out for interview %s; using fallback question", interview_id)
         next_question = _fallback_question(
             job,
             question_number=current_question.order_number + 1,
+            previous_questions=previous_questions,
+            candidate_answer=candidate_answer,
+        )
+    except Exception as exc:
+        logger.exception("Gemini failed for interview %s; using fallback question", interview_id)
+        next_question = _fallback_question(
+            job,
+            question_number=current_question.order_number + 1,
+            previous_questions=previous_questions,
+            candidate_answer=candidate_answer,
+        )
+
+    if _normalize_question(next_question) in {
+        _normalize_question(question) for question in previous_questions
+    }:
+        next_question = _fallback_question(
+            job,
+            question_number=current_question.order_number + 1,
+            previous_questions=previous_questions,
+            candidate_answer=candidate_answer,
         )
 
 
