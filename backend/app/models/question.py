@@ -1,13 +1,9 @@
 from datetime import datetime
-
 from typing import TYPE_CHECKING
 from sqlalchemy import String, Text, DateTime, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
 from app.models.base import Base
 from app.models.answer import Answer
-
-
 
 if TYPE_CHECKING:
     from app.models.answer import Answer
@@ -50,14 +46,11 @@ class Question(Base):
         nullable=False
     )
 
-    # Relationship hii inaunganisha Question na Interview.
-    # Interview ina questions nyingi, wakati Question moja ni ya Interview moja.
     interview: Mapped["Interview"] = relationship(
         "Interview",
         back_populates="questions"
     )
 
-    # Question moja inaweza kuwa na answers nyingi.
     answers: Mapped[list["Answer"]] = relationship(
         "Answer",
         back_populates="question",

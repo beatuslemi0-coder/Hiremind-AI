@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 
 
 app = FastAPI(
-    title="VOX",
+    title="ZURI",
     version="1.0.0",
 )
 
@@ -38,7 +38,7 @@ app.include_router(
 @app.get("/")
 async def root():
     return {
-        "message": "VOX is running"
+        "message": "ZURI-AI is running"
     }
 
 @app.get("/test-db")

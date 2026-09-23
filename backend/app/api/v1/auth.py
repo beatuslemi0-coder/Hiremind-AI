@@ -15,10 +15,10 @@ from app.models.user import User
 # Schemas za registration na login.
 from app.schemas.user import (
     UserCreate,
-    UserLogin,
     UserResponse,
     TokenResponse
 )
+from app.schemas.auth import LoginRequest
 
 # User service yenye business logic.
 from app.services.user_service import UserService
@@ -90,6 +90,39 @@ def get_current_user_profile(
     return current_user
 
 
+def _token_for_user(user: User) -> TokenResponse:
+    access_token = create_access_token(
+        user_id=user.id,
+        role=user.role
+    )
+    return TokenResponse(
+        access_token=access_token,
+        token_type="bearer"
+    )
+
+
+@router.post(
+    "/session",
+    response_model=TokenResponse
+)
+def login_json(
+    data: LoginRequest,
+    db: Session = Depends(get_db)
+):
+    user = UserService.authenticate_user(
+        db=db,
+        email=data.email,
+        password=data.password
+    )
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+    return _token_for_user(user)
+
+
 @router.post(
     "/login",
     response_model=TokenResponse
@@ -117,14 +150,4 @@ def login(
             }
         )
 
-    # Tunatengeneza JWT baada ya login kufanikiwa.
-    access_token = create_access_token(
-        user_id=user.id,
-        role=user.role
-    )
-
-    # Tunamrudishia user token.
-    return TokenResponse(
-        access_token=access_token,
-        token_type="bearer"
-    )
+    return _token_for_user(user)

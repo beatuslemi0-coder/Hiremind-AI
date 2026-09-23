@@ -1,23 +1,15 @@
 # Tunatumia os kwa ajili ya kutengeneza folders na file paths.
 import os
-
-# SQLAlchemy Session kwa ajili ya database.
 from sqlalchemy.orm import Session
-
-# FastAPI UploadFile kwa ajili ya kushughulikia uploaded file.
 from fastapi import UploadFile
-
-# Document model.
 from app.models.document import Document, DocumentType
 
 
 # Folder ambalo documents za candidates zitahifadhiwa.
 UPLOAD_DIR = "uploads/documents"
 
-
 # Tunahakikisha folder la uploads lipo.
 os.makedirs(UPLOAD_DIR, exist_ok=True)
-
 
 # Service hii inahusika na kuhifadhi document.
 class DocumentService:
@@ -70,14 +62,7 @@ class DocumentService:
             file_path=file_path
         )
 
-        # Tunaongeza document kwenye database.
         db.add(document)
-
-        # Tunahifadhi database changes.
         db.commit()
-
-        # Tunafanya refresh ili tupate ID iliyotengenezwa.
         db.refresh(document)
-
-        # Tunamrudishia document.
         return document

@@ -57,7 +57,8 @@ from app.services.interview_service import InterviewService
 # Interview schemas kwa validation ya request na response.
 from app.schemas.interview import (
     InterviewCreate,
-    InterviewResponse
+    InterviewResponse,
+    TextAnswerRequest,
 )
 # Tiny is faster for live interview responses; override with WHISPER_MODEL if needed.
 whisper_model = whisper.load_model(os.getenv("WHISPER_MODEL", "tiny"))
@@ -817,4 +818,181 @@ async def upload_voice_answer(
     "next_question": next_question,
     "audio_url": None
 }
+
+
+def _process_candidate_answer(
+    db: Session,
+    interview: Interview,
+    current_question: Question,
+    candidate_answer: str,
+    current_user: User,
+):
+    db.add(Answer(
+        question_id=current_question.id,
+        answer_text=candidate_answer,
+        score=min(100.0, max(0.0, len(candidate_answer.split()) * 2.5)),
+        ai_feedback="Jibu limepokelewa na kuhifadhiwa kwa ajili ya tathmini ya interview.",
+    ))
+    db.commit()
+
+    if current_question.order_number >= 10:
+        InterviewService.complete_interview(
+            db=db,
+            interview_id=interview.id,
+            user_id=current_user.id,
+        )
+        return {
+            "message": "Interview completed successfully",
+            "interview_id": interview.id,
+            "question_id": current_question.id,
+            "transcription": candidate_answer,
+            "next_question_id": None,
+            "next_question": None,
+            "interview_completed": True,
+            "closing_message": "Asante kwa ushirikiano wako. Karibu uangalie report yako.",
+            "audio_url": None,
+        }
+
+    cv = (
+        db.query(Document)
+        .filter(
+            Document.user_id == current_user.id,
+            Document.document_type == "cv"
+        )
+        .first()
+    )
+    if cv is None:
+        raise HTTPException(status_code=400, detail="Candidate CV not found")
+
+    cv_text = PDFService.extract_text(cv.file_path)
+    if not cv_text.strip():
+        raise HTTPException(status_code=400, detail="Could not extract readable text from CV")
+
+    job = interview.application.job if interview.application else None
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Interview is not linked to a job"
+        )
+
+    job_information = f"""
+    JOB TITLE:
+    {job.title}
+
+    JOB DESCRIPTION:
+    {job.description}
+
+    LOCATION:
+    {job.location}
+
+    EMPLOYMENT TYPE:
+    {job.employment_type}
+
+    EDUCATION REQUIRED:
+    {job.education_required or "Not specified"}
+
+    EXPERIENCE REQUIRED:
+    {job.experience_required if job.experience_required is not None else "Not specified"}
+
+    SKILLS REQUIRED:
+    {job.skills_required or "Not specified"}
+    """
+
+    previous_questions = [
+        question.question_text
+        for question in db.query(Question)
+        .filter(Question.interview_id == interview.id)
+        .order_by(Question.order_number.asc())
+        .all()
+    ]
+
+    try:
+        next_question = AIService.analyze_answer_and_generate_next_question(
+            candidate_information=cv_text,
+            job_information=job_information,
+            current_question=current_question.question_text,
+            candidate_answer=candidate_answer,
+            previous_questions=previous_questions,
+        )
+    except Exception:
+        next_question = _fallback_question(
+            job,
+            question_number=current_question.order_number + 1,
+            previous_questions=previous_questions,
+            candidate_answer=candidate_answer,
+        )
+
+    if _normalize_question(next_question) in {
+        _normalize_question(question) for question in previous_questions
+    }:
+        next_question = _fallback_question(
+            job,
+            question_number=current_question.order_number + 1,
+            previous_questions=previous_questions,
+            candidate_answer=candidate_answer,
+        )
+
+    new_question = Question(
+        interview_id=interview.id,
+        question_text=next_question,
+        question_type="follow_up",
+        order_number=current_question.order_number + 1
+    )
+    db.add(new_question)
+    db.commit()
+    db.refresh(new_question)
+
+    return {
+        "message": "Answer processed successfully",
+        "interview_id": interview.id,
+        "question_id": current_question.id,
+        "transcription": candidate_answer,
+        "next_question_id": new_question.id,
+        "next_question": next_question,
+        "interview_completed": False,
+        "audio_url": None,
+    }
+
+
+@router.post(
+    "/{interview_id}/text-answer",
+    status_code=status.HTTP_201_CREATED
+)
+def submit_text_answer(
+    interview_id: int,
+    payload: TextAnswerRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    answer_text = (payload.answer_text or "").strip()
+    if not answer_text:
+        raise HTTPException(status_code=400, detail="Answer text is required")
+
+    interview = (
+        db.query(Interview)
+        .filter(
+            Interview.id == interview_id,
+            Interview.user_id == current_user.id
+        )
+        .first()
+    )
+    if interview is None:
+        raise HTTPException(status_code=404, detail="Interview not found")
+
+    current_question = (
+        db.query(Question)
+        .filter(Question.interview_id == interview_id)
+        .order_by(Question.order_number.desc())
+        .first()
+    )
+    if current_question is None:
+        raise HTTPException(status_code=400, detail="No interview question found")
+
+    return _process_candidate_answer(
+        db=db,
+        interview=interview,
+        current_question=current_question,
+        candidate_answer=answer_text,
+        current_user=current_user,
+    )
  
