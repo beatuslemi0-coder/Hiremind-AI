@@ -37,5 +37,36 @@ class AttentionSessionResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class AttentionSummaryResponse(BaseModel):
+    """
+    Schema hii inarudisha muhtasari wa attention
+    iliyokusanywa wakati wa interview.
+    """
+
+    interview_id: int
+    monitoring_duration_sec: float
+    total_metrics: int
+    face_detected_count: int
+    face_not_detected_count: int
+    off_screen_count: int
     
+    average_gaze_deviation_deg: float | None
     
+class AttentionEventResponse(BaseModel):
+    """
+    Schema hii inarudisha taarifa za attention event
+    kama off-screen event.
+    """
+
+    id: int
+    interview_id: int
+    event_type: str
+    started_at: datetime
+    ended_at: datetime | None
+    duration_sec: float | None
+    is_active: bool
+
+    class Config:
+        from_attributes = True
+        
