@@ -480,9 +480,8 @@ async def upload_voice_answer(
     current_user: User = Depends(get_current_user)
 ):
 
-    # ---------------------------------------------------------
     # 1. TUNATAFUTA INTERVIEW
-    # ---------------------------------------------------------
+
 
     # Tunahakikisha interview ipo na ni ya candidate huyu.
     interview = (
@@ -551,10 +550,7 @@ async def upload_voice_answer(
             detail="Candidate CV not found"
         )
 
-
-    # ---------------------------------------------------------
     # 3. TUNATAFUTA SWALI LA SASA
-    # ---------------------------------------------------------
 
     # Tunachukua swali la mwisho lililotengenezwa
     # ndani ya interview hii.
@@ -577,10 +573,7 @@ async def upload_voice_answer(
             detail="No interview question found"
         )
 
-
-    # ---------------------------------------------------------
     # 4. TUNAHIFADHI AUDIO
-    # ---------------------------------------------------------
 
     # Folder ambayo audio za interview zitawekwa.
     audio_folder = Path("uploads/audio")
@@ -605,10 +598,7 @@ async def upload_voice_answer(
 
         file.write(audio_data)
 
-
-    # ---------------------------------------------------------
     # 5. WHISPER: AUDIO → TEXT
-    # ---------------------------------------------------------
 
     if not _ensure_ffmpeg():
         raise HTTPException(
@@ -675,10 +665,6 @@ async def upload_voice_answer(
         }
 
 
-    # ---------------------------------------------------------
-    # 6. TUNASOMA CV
-    # ---------------------------------------------------------
-
     # Tunatoa text kutoka kwenye CV.
     cv_text = PDFService.extract_text(
         cv.file_path
@@ -693,9 +679,6 @@ async def upload_voice_answer(
         )
 
 
-    # ---------------------------------------------------------
-    # 7. GEMINI: ANALYZE ANSWER + NEXT QUESTION
-    # ---------------------------------------------------------
 
     # Tunachukua Job inayohusiana na interview kupitia Application.
     job = interview.application.job if interview.application else None
@@ -780,10 +763,7 @@ async def upload_voice_answer(
             candidate_answer=candidate_answer,
         )
 
-
-    # ---------------------------------------------------------
     # 8. TUNATENGENEZA QUESTION MPYA
-    # ---------------------------------------------------------
 
     # Tunapata order number ya swali jipya.
     next_order_number = current_question.order_number + 1
@@ -796,13 +776,8 @@ async def upload_voice_answer(
         order_number=next_order_number
     )
 
-    # Tunaongeza swali kwenye database.
     db.add(new_question)
-
-    # Tunahifadhi database.
     db.commit()
-
-    # Tunafanya refresh kupata ID ya question.
     db.refresh(new_question)
 
     # Return the text immediately. The frontend browser voice reads it without

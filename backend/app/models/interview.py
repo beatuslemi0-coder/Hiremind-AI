@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import String, DateTime, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base
+
 # Imports hizi hutumika kwa type checking tu.
 if TYPE_CHECKING:
     from app.models.question import Question
@@ -11,6 +12,7 @@ if TYPE_CHECKING:
     from app.models.application import Application
     from app.models.attention_metric import AttentionMetric
     from app.models.attention_session import AttentionSession
+    from app.models.attention_event import AttentionEvent
 
 # Model hii inawakilisha interview ya candidate.
 class Interview(Base):
@@ -105,6 +107,12 @@ class Interview(Base):
     
     attention_sessions: Mapped[list["AttentionSession"]] = relationship(
     "AttentionSession",
+    back_populates="interview",
+    cascade="all, delete-orphan"
+    )
+    
+    attention_events: Mapped[list["AttentionEvent"]] = relationship(
+    "AttentionEvent",
     back_populates="interview",
     cascade="all, delete-orphan"
 )

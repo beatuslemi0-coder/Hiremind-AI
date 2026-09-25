@@ -1,4 +1,4 @@
-# APIRouter inatusaidia kutengeneza authentication endpoints.
+
 from fastapi import APIRouter, Depends, HTTPException, status
 
 # SQLAlchemy Session kwa ajili ya database.
@@ -34,9 +34,7 @@ router = APIRouter(
 )
 
 
-# ---------------------------------------------------------
 # REGISTER
-# ---------------------------------------------------------
 @router.post(
     "/register",
     response_model=UserResponse,
@@ -76,9 +74,8 @@ def register(
         )
 
 
-# ---------------------------------------------------------
 # LOGIN
-# ---------------------------------------------------------
+
 @router.get(
     "/me",
     response_model=UserResponse
@@ -135,7 +132,7 @@ def login(
     # Tunathibitisha email na password.
     user = UserService.authenticate_user(
         db=db,
-        email=form_data.username,  # OAuth2PasswordRequestForm inatumia 'username' kwa email.
+        email=form_data.username,  
         password=form_data.password
     )
 

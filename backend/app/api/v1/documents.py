@@ -1,10 +1,6 @@
-# APIRouter inatusaidia kutengeneza document endpoints.
+
 from fastapi import APIRouter, Depends, File, Form, UploadFile, HTTPException
-
-# SQLAlchemy Session.
 from sqlalchemy.orm import Session
-
-# Database dependency.
 from app.db.session import get_db
 
 # Authentication dependency.

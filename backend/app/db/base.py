@@ -14,3 +14,4 @@ from app.models.work_experience import WorkExperience
 from app.models.job import Job
 from app.models.application import Application
 from app.models.attention_session import AttentionSession
+from app.models.attention_event import AttentionEvent

@@ -1,25 +1,12 @@
-# Tuna-import FastAPI tools kwa ajili ya kutengeneza endpoints.
+
 from fastapi import APIRouter, Depends, HTTPException, status
-
-# SQLAlchemy Session kwa ajili ya kufanya operations kwenye database.
 from sqlalchemy.orm import Session
-
-# Database dependency.
 from app.db.session import get_db
-
-# Dependency ya kumpata user aliye-login.
 from app.api.dependencies import get_current_user
-
-# User model.
 from app.models.user import User
-
-# Job model.
 from app.models.job import Job
-
-# Application model.
 from app.models.application import Application
 
-# Schemas za application.
 from app.schemas.application import (
     ApplicationCreate,
     ApplicationResponse,
@@ -27,17 +14,13 @@ from app.schemas.application import (
 )
 
 
-# Router ya applications.
 router = APIRouter(
     prefix="/applications",
     tags=["Applications"]
 )
 
 
-# ---------------------------------------------------------
 # APPLY FOR JOB
-# ---------------------------------------------------------
-
 @router.post(
     "",
     response_model=ApplicationResponse,
@@ -96,22 +79,14 @@ def apply_for_job(
         status="pending"
     )
 
-    # Tunaongeza application kwenye database session.
     db.add(application)
-
-    # Tunahifadhi application kwenye PostgreSQL.
     db.commit()
-
-    # Tunapata taarifa mpya kutoka database.
     db.refresh(application)
 
-    # Tunamrudishia candidate application yake.
     return application
 
 
-# ---------------------------------------------------------
 # MY APPLICATIONS
-# ---------------------------------------------------------
 
 @router.get(
     "/my-applications",
@@ -142,9 +117,7 @@ def get_my_applications(
     return applications
 
 
-# ---------------------------------------------------------
 # EMPLOYER VIEW APPLICANTS
-# ---------------------------------------------------------
 
 @router.get(
     "/job/{job_id}",
@@ -193,9 +166,7 @@ def get_job_applicants(
     return applications
 
 
-# ---------------------------------------------------------
 # UPDATE APPLICATION STATUS
-# ---------------------------------------------------------
 
 @router.put(
     "/{application_id}/status",
@@ -247,22 +218,14 @@ def update_application_status(
             detail="Invalid application status."
         )
 
-    # Tunabadilisha status ya application.
     application.status = data.status
 
-    # Tunahifadhi mabadiliko.
     db.commit()
-
-    # Tunapakia application iliyosasishwa.
     db.refresh(application)
-
-    # Tunamrudishia employer application mpya.
     return application
 
 
-# ---------------------------------------------------------
 # WITHDRAW APPLICATION
-# ---------------------------------------------------------
 
 @router.delete(
     "/{application_id}",
@@ -297,11 +260,7 @@ def withdraw_application(
             detail="Application not found."
         )
 
-    # Tunafuta application.
     db.delete(application)
-
-    # Tunahifadhi mabadiliko kwenye database.
     db.commit()
 
-    # HTTP 204 haina response body.
     return None
