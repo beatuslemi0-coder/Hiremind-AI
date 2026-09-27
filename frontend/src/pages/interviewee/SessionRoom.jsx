@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import { LogOut, Mic, MicOff, SendHorizonal, Video, Volume2, VolumeX } from "lucide-react";
 import client from "../../api/client";
+import { interviewsApi } from "../../api/vox";
 import { takeCameraStream, stashCameraStream } from "../../lib/cameraBus";
 import interviewerPortrait from "../../assets/interviewer.png";
 
@@ -61,6 +62,10 @@ function InterviewerPortrait({ state, energy = 0 }) {
     </div>
   );
 }
+
+ function RoomPortal({ children }) {
+    return createPortal(children, document.body);
+  }
 
 export default function SessionRoom() {
   const { t, i18n } = useTranslation();
@@ -133,11 +138,46 @@ export default function SessionRoom() {
     transcriptRef.current?.scrollTo({ top: transcriptRef.current.scrollHeight });
   }, [messages]);
 
-  // --- boot: resolve session + transcript ---
+  // --- boot: resolve the real FastAPI interview + first question ---
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
+        // Hii ni response halisi kutoka POST /interviews/start.
+        // Tukipata data hii, hatupigi tena endpoint ya zamani ya
+        // /interviewee/interview-sessions/{id}/begin.
+        const startedInterview = state?.startedInterview;
+
+        if (startedInterview?.interview_id) {
+          if (cancelled) return;
+
+          setSessionId(startedInterview.interview_id);
+          setTitle(
+            state?.title ||
+            startedInterview.job_title ||
+            t("sessionRoom.generic_title")
+          );
+
+          // Backend imetengeneza swali la kwanza tayari.
+          setMessages([
+            {
+              id: startedInterview.question_id,
+              role: "ai",
+              content: startedInterview.question,
+            },
+          ]);
+
+          // Kwa sasa plan size haijarudishwi na /interviews/start,
+          // hivyo tunaacha progress counter bila kuonyesha idadi ya kubuni.
+          setQuestionIndex(0);
+          setPlanSize(0);
+          setCompleted(false);
+          setLang("sw");
+          setBooting(false);
+          return;
+        }
+
+        // Fallback kwa booked sessions/flow ya zamani.
         let id = initialSessionId;
         let sessionTitle = state?.title ?? null;
         if (!id) {
@@ -483,12 +523,55 @@ export default function SessionRoom() {
     setSending(true);
     setError(null);
     try {
-      const { data } = await client.post(`/interviewee/interview-sessions/${sessionId}/answer`, { content });
-      setMessages((m) => [...m, data.answer, data.reply]);
-      setQuestionIndex(data.questionIndex);
+      const data = await interviewsApi.textAnswer(
+        sessionId,
+        content
+      );
       setDraft("");
-      if (data.completed) setCompleted(true);
+      if (data.answer) {
+        setMessages((messages) => [
+          ...messages,
+          {
+            id: data.answer_id || `answer-${Data.now()}`,
+            role: "user",
+            content: data.answer,
+        
+          },
+        ]);
+      }else{
+        setMessages((messages) => [
+          ...messages,
+          {
+            id: `answer-${Date.now()}`,
+            role: "user",
+            content,
+          },
+        ]);
+      }
+
+      const nextQuestion = data.next_question || data.question || data.reply;
+      if (nextQuestion) {
+        setMessages((messages) => [
+          ...messages,
+          {
+            id:
+              data.next_question_id ||
+              data.question_id ||
+              `question-${Date.now()}`,
+              role: "ai",
+              content: nextQuestion,
+          },
+        ]);
+      }
+      if (data.completed) {
+        setCompleted(true);
+      }
+
+      if (typeof data.questionIndex === "number") {
+        setQuestionIndex(data.questionIndex);
+      }
     } catch (err) {
+      console.error("Failed to send interview answer:",err);
       if (err.response?.status === 409 && err.response?.data?.error === "session_closed") {
         setCompleted(true);
       } else {
@@ -527,9 +610,7 @@ export default function SessionRoom() {
      the page box (the room measured 0px tall). Portalling to <body> escapes
      the transformed ancestor entirely — the shell's own fixed inset-0 then
      covers the screen for real. */
-  function RoomPortal({ children }) {
-    return createPortal(children, document.body);
-  }
+
 
   if (booting) {
     return (

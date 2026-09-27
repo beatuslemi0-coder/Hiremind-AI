@@ -4,8 +4,6 @@ import asyncio
 import logging
 import re
 
-
-# SQLAlchemy Session kwa ajili ya database.
 from sqlalchemy.orm import Session
 
 # Kutengeneza majina ya files bila kugongana.
@@ -35,6 +33,8 @@ from app.models.document import Document
 import whisper
 from app.models.question import Question
 from app.models.answer import Answer
+from app.models.attention_session import AttentionSession
+
 
 
 def _ensure_ffmpeg() -> bool:
@@ -283,7 +283,19 @@ def start_interview(
     )
     db.add(interview)
     db.commit()
-    db.refresh(interview)
+    db.refresh(interview) 
+    
+    #START ATTENTION MONITORING
+    
+    attention_session =  AttentionSession(
+        interview_id=interview.id,
+        is_active=True
+    )
+    
+    db.add(attention_session)
+    db.commit()
+    db.refresh(attention_session)
+    
 
     # Tunahifadhi swali la kwanza kwenye database.
     first_question_record = Question(
@@ -293,13 +305,8 @@ def start_interview(
         order_number=1
     )
 
-    # Tunaongeza swali kwenye database.
     db.add(first_question_record)
-
-    # Tunahifadhi swali.
     db.commit()
-
-    # Tunafanya refresh ili tupate ID ya swali.
     db.refresh(first_question_record)
 
     # Tunatengeneza sauti ya swali la kwanza kwa kutumia Gemini TTS.
@@ -326,12 +333,12 @@ def start_interview(
         "status": interview.status,
         "question_id": first_question_record.id,
         "question": first_question,
+        "attention_monitoring": attention_session.is_active,
+        "attention-session_id": attention_session.id,
         "audio_url": f"/uploads/tts/{tts_filename}" if tts_filename else None
     }
 
-# ---------------------------------------------------------
 # Get My Interviews
-# ---------------------------------------------------------
 @router.get(
     "/",
     response_model=list[InterviewResponse],
@@ -348,10 +355,7 @@ def get_my_interviews(
         user_id=current_user.id
     )
 
-
-# ---------------------------------------------------------
 # Get One Interview
-# ---------------------------------------------------------
 @router.get(
     "/{interview_id}",
     response_model=InterviewResponse
@@ -385,9 +389,7 @@ def get_interview(
         )
 
 
-# ---------------------------------------------------------
 # Start Interview
-# ---------------------------------------------------------
 @router.post(
     "/{interview_id}/start",
     response_model=InterviewResponse
@@ -458,32 +460,18 @@ def complete_interview(
         )
 
 
-# Endpoint hii inapokea sauti ya candidate,
-# inaitafsiri kuwa text kwa Whisper,
-# kisha Gemini anachambua jibu na kutengeneza swali linalofuata.
 @router.post(
     "/{interview_id}/voice-answer",
     status_code=status.HTTP_201_CREATED
 )
 async def upload_voice_answer(
 
-    # ID ya interview inayofanyika.
     interview_id: int,
-
-    # Audio ambayo candidate amerekodi.
     audio: UploadFile = File(...),
-
-    # Database session.
     db: Session = Depends(get_db),
-
-    # Tunampata user aliye-login kupitia JWT.
     current_user: User = Depends(get_current_user)
 ):
 
-    # 1. TUNATAFUTA INTERVIEW
-
-
-    # Tunahakikisha interview ipo na ni ya candidate huyu.
     interview = (
         db.query(Interview)
         .filter(
@@ -492,17 +480,14 @@ async def upload_voice_answer(
         )
         .first()
     )
-    # Tunahakikisha interview ipo.
+    
     if not interview:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Interview not found"
         )
 
-    # Tunachukua Application iliyounganishwa na interview.
     application = interview.application
-
-    # Tunahakikisha interview ina Application.
     if not application:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -527,12 +512,6 @@ async def upload_voice_answer(
             detail="Interview not found"
         )
 
-
-    # ---------------------------------------------------------
-    # 2. TUNATAFUTA CV
-    # ---------------------------------------------------------
-
-    # Tunachukua CV ya candidate kutoka database.
     cv = (
         db.query(Document)
         .filter(
@@ -542,7 +521,6 @@ async def upload_voice_answer(
         .first()
     )
 
-    # Kama CV haipo.
     if cv is None:
 
         raise HTTPException(
@@ -550,10 +528,6 @@ async def upload_voice_answer(
             detail="Candidate CV not found"
         )
 
-    # 3. TUNATAFUTA SWALI LA SASA
-
-    # Tunachukua swali la mwisho lililotengenezwa
-    # ndani ya interview hii.
     current_question = (
         db.query(Question)
         .filter(
@@ -572,8 +546,6 @@ async def upload_voice_answer(
             status_code=400,
             detail="No interview question found"
         )
-
-    # 4. TUNAHIFADHI AUDIO
 
     # Folder ambayo audio za interview zitawekwa.
     audio_folder = Path("uploads/audio")
@@ -678,8 +650,6 @@ async def upload_voice_answer(
             detail="Could not extract readable text from CV"
         )
 
-
-
     # Tunachukua Job inayohusiana na interview kupitia Application.
     job = interview.application.job if interview.application else None
 
@@ -734,7 +704,7 @@ async def upload_voice_answer(
                 candidate_answer=candidate_answer,
                 previous_questions=previous_questions,
             ),
-            timeout=25,
+            timeout=120,
         )
     except asyncio.TimeoutError:
         logger.warning("Gemini timed out for interview %s; using fallback question", interview_id)
