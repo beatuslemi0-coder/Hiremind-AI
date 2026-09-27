@@ -99,9 +99,14 @@ export default function SessionSetup() {
         navigate("/interviewee/session", {
           replace: true,
           state: {
+            // Backend imeshatengeneza interview halisi. Tunaipeleka response yote
+            // kwenye live room ili isitumie tena flow ya zamani ya session.
             sessionId: started.interview_id,
             title: interview?.title || bookedSession?.title || started.job_title,
             scheduledFor: bookedSession?.scheduled_for || null,
+            startedInterview: started,
+            attentionSessionId: started.attention_session_id,
+            attentionMonitoring: started.attention_monitoring,
           },
         });
       } else if (bookedSession?.interview_id) {
