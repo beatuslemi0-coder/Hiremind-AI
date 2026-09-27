@@ -733,8 +733,6 @@ async def upload_voice_answer(
             candidate_answer=candidate_answer,
         )
 
-    # 8. TUNATENGENEZA QUESTION MPYA
-
     # Tunapata order number ya swali jipya.
     next_order_number = current_question.order_number + 1
 
@@ -750,10 +748,6 @@ async def upload_voice_answer(
     db.commit()
     db.refresh(new_question)
 
-    # Return the text immediately. The frontend browser voice reads it without
-    # waiting for the optional Gemini TTS request.
-
-# Tunamrudishia frontend text pamoja na location ya audio.
     return {
     "message": "Voice answer processed successfully",
     "interview_id": interview.id,

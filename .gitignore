@@ -5,3 +5,9 @@ frontend/dist/
 frontend/*.log
 frontend/*.log.err
 
+data/
+models/
+.venv/
+__pycache__/
+*.pyc
+.DS_Store

@@ -605,12 +605,6 @@ export default function SessionRoom() {
     navigate("/interviewee/sessions");
   }
 
-  /* The room must own the whole viewport, but React Router renders this page
-     inside PageTransition, whose CSS transform would trap position:fixed to
-     the page box (the room measured 0px tall). Portalling to <body> escapes
-     the transformed ancestor entirely — the shell's own fixed inset-0 then
-     covers the screen for real. */
-
 
   if (booting) {
     return (
