@@ -1,10 +1,6 @@
-# APIRouter inatusaidia kutengeneza document endpoints.
+
 from fastapi import APIRouter, Depends, File, Form, UploadFile, HTTPException
-
-# SQLAlchemy Session.
 from sqlalchemy.orm import Session
-
-# Database dependency.
 from app.db.session import get_db
 
 # Authentication dependency.
@@ -27,6 +23,8 @@ from app.models.document import Document
 
 # AI service inayochambua maandishi ya document.
 from app.services.ai_service import AIService
+
+from app.models.job import Job
 
 # Router ya documents.
 router = APIRouter(
@@ -178,9 +176,7 @@ def analyze_document(
         )
 
     # Tunapeleka text kwenye AI service.
-    analysis = AIService.analyze_document(
-        text=text
-    )
+    analysis = AIService.analyze_candidate_document(candidate_information=text)
 
     # Tunamrudishia analysis.
     return {
@@ -195,6 +191,10 @@ def generate_interview_question(
 
     # ID ya CV/certificate.
     document_id: int,
+    
+    #job id
+    job_id: int,
+    
 
     # Database session.
     db: Session = Depends(get_db),
@@ -221,11 +221,20 @@ def generate_interview_question(
             status_code=403,
             detail="You do not have permission to access this document"
         )
+        
+    job = db.get(Job, job_id)
+    
+    if job is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Job not found"
+        )
 
     # Tunatoa text kutoka kwenye PDF.
     text = PDFService.extract_text(
         document.file_path
     )
+    
 
     # Kama hakuna text.
     if not text.strip():
@@ -234,14 +243,43 @@ def generate_interview_question(
             status_code=400,
             detail="No readable text found in this document"
         )
+        
+    job_information = f""""
+    JOB TITLE:
+    {job.title}
+    
+    JOB DESCRIPTION:
+    {job.description}
+    
+    LOCATION:
+    {job.location}
+    
+    EMPLOYMENT TYPE:
+    {job.employment_type}
+    
+    EDUCATION REQUIRED:
+    {job.education_required or "Not specied"}
+    
+    EXPERIENCE REQUIRED:
+    {
+        job.experience_required
+        if job.experience_required is not None
+        else "Not specied"
+    }
+    
+    SKILLS REQUIRED:
+    {job.skills_required or "Not specied"}
+    """
 
     # Tunatuma document information kwa Gemini.
     question = AIService.generate_interview_question(
-        candidate_information=text
+        candidate_information=text,
+        job_information=job_information
     )
 
     # Tunamrudishia candidate swali.
     return {
         "document_id": document.id,
+        "job_id": job.id,
         "question": question
     }

@@ -1,8 +1,6 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-
 from app.models.question import Question
-
 
 class QuestionRepository:
 

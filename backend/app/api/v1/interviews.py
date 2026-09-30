@@ -4,8 +4,6 @@ import asyncio
 import logging
 import re
 
-
-# SQLAlchemy Session kwa ajili ya database.
 from sqlalchemy.orm import Session
 
 # Kutengeneza majina ya files bila kugongana.
@@ -35,6 +33,8 @@ from app.models.document import Document
 import whisper
 from app.models.question import Question
 from app.models.answer import Answer
+from app.models.attention_session import AttentionSession
+
 
 
 def _ensure_ffmpeg() -> bool:
@@ -57,7 +57,8 @@ from app.services.interview_service import InterviewService
 # Interview schemas kwa validation ya request na response.
 from app.schemas.interview import (
     InterviewCreate,
-    InterviewResponse
+    InterviewResponse,
+    TextAnswerRequest,
 )
 # Tiny is faster for live interview responses; override with WHISPER_MODEL if needed.
 whisper_model = whisper.load_model(os.getenv("WHISPER_MODEL", "tiny"))
@@ -282,7 +283,19 @@ def start_interview(
     )
     db.add(interview)
     db.commit()
-    db.refresh(interview)
+    db.refresh(interview) 
+    
+    #START ATTENTION MONITORING
+    
+    attention_session =  AttentionSession(
+        interview_id=interview.id,
+        is_active=True
+    )
+    
+    db.add(attention_session)
+    db.commit()
+    db.refresh(attention_session)
+    
 
     # Tunahifadhi swali la kwanza kwenye database.
     first_question_record = Question(
@@ -292,13 +305,8 @@ def start_interview(
         order_number=1
     )
 
-    # Tunaongeza swali kwenye database.
     db.add(first_question_record)
-
-    # Tunahifadhi swali.
     db.commit()
-
-    # Tunafanya refresh ili tupate ID ya swali.
     db.refresh(first_question_record)
 
     # Tunatengeneza sauti ya swali la kwanza kwa kutumia Gemini TTS.
@@ -325,12 +333,12 @@ def start_interview(
         "status": interview.status,
         "question_id": first_question_record.id,
         "question": first_question,
+        "attention_monitoring": attention_session.is_active,
+        "attention-session_id": attention_session.id,
         "audio_url": f"/uploads/tts/{tts_filename}" if tts_filename else None
     }
 
-# ---------------------------------------------------------
 # Get My Interviews
-# ---------------------------------------------------------
 @router.get(
     "/",
     response_model=list[InterviewResponse],
@@ -347,10 +355,7 @@ def get_my_interviews(
         user_id=current_user.id
     )
 
-
-# ---------------------------------------------------------
 # Get One Interview
-# ---------------------------------------------------------
 @router.get(
     "/{interview_id}",
     response_model=InterviewResponse
@@ -384,9 +389,7 @@ def get_interview(
         )
 
 
-# ---------------------------------------------------------
 # Start Interview
-# ---------------------------------------------------------
 @router.post(
     "/{interview_id}/start",
     response_model=InterviewResponse
@@ -457,33 +460,18 @@ def complete_interview(
         )
 
 
-# Endpoint hii inapokea sauti ya candidate,
-# inaitafsiri kuwa text kwa Whisper,
-# kisha Gemini anachambua jibu na kutengeneza swali linalofuata.
 @router.post(
     "/{interview_id}/voice-answer",
     status_code=status.HTTP_201_CREATED
 )
 async def upload_voice_answer(
 
-    # ID ya interview inayofanyika.
     interview_id: int,
-
-    # Audio ambayo candidate amerekodi.
     audio: UploadFile = File(...),
-
-    # Database session.
     db: Session = Depends(get_db),
-
-    # Tunampata user aliye-login kupitia JWT.
     current_user: User = Depends(get_current_user)
 ):
 
-    # ---------------------------------------------------------
-    # 1. TUNATAFUTA INTERVIEW
-    # ---------------------------------------------------------
-
-    # Tunahakikisha interview ipo na ni ya candidate huyu.
     interview = (
         db.query(Interview)
         .filter(
@@ -492,17 +480,14 @@ async def upload_voice_answer(
         )
         .first()
     )
-    # Tunahakikisha interview ipo.
+    
     if not interview:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Interview not found"
         )
 
-    # Tunachukua Application iliyounganishwa na interview.
     application = interview.application
-
-    # Tunahakikisha interview ina Application.
     if not application:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -527,12 +512,6 @@ async def upload_voice_answer(
             detail="Interview not found"
         )
 
-
-    # ---------------------------------------------------------
-    # 2. TUNATAFUTA CV
-    # ---------------------------------------------------------
-
-    # Tunachukua CV ya candidate kutoka database.
     cv = (
         db.query(Document)
         .filter(
@@ -542,7 +521,6 @@ async def upload_voice_answer(
         .first()
     )
 
-    # Kama CV haipo.
     if cv is None:
 
         raise HTTPException(
@@ -550,13 +528,6 @@ async def upload_voice_answer(
             detail="Candidate CV not found"
         )
 
-
-    # ---------------------------------------------------------
-    # 3. TUNATAFUTA SWALI LA SASA
-    # ---------------------------------------------------------
-
-    # Tunachukua swali la mwisho lililotengenezwa
-    # ndani ya interview hii.
     current_question = (
         db.query(Question)
         .filter(
@@ -575,11 +546,6 @@ async def upload_voice_answer(
             status_code=400,
             detail="No interview question found"
         )
-
-
-    # ---------------------------------------------------------
-    # 4. TUNAHIFADHI AUDIO
-    # ---------------------------------------------------------
 
     # Folder ambayo audio za interview zitawekwa.
     audio_folder = Path("uploads/audio")
@@ -604,10 +570,7 @@ async def upload_voice_answer(
 
         file.write(audio_data)
 
-
-    # ---------------------------------------------------------
     # 5. WHISPER: AUDIO → TEXT
-    # ---------------------------------------------------------
 
     if not _ensure_ffmpeg():
         raise HTTPException(
@@ -674,10 +637,6 @@ async def upload_voice_answer(
         }
 
 
-    # ---------------------------------------------------------
-    # 6. TUNASOMA CV
-    # ---------------------------------------------------------
-
     # Tunatoa text kutoka kwenye CV.
     cv_text = PDFService.extract_text(
         cv.file_path
@@ -690,11 +649,6 @@ async def upload_voice_answer(
             status_code=400,
             detail="Could not extract readable text from CV"
         )
-
-
-    # ---------------------------------------------------------
-    # 7. GEMINI: ANALYZE ANSWER + NEXT QUESTION
-    # ---------------------------------------------------------
 
     # Tunachukua Job inayohusiana na interview kupitia Application.
     job = interview.application.job if interview.application else None
@@ -750,7 +704,7 @@ async def upload_voice_answer(
                 candidate_answer=candidate_answer,
                 previous_questions=previous_questions,
             ),
-            timeout=25,
+            timeout=120,
         )
     except asyncio.TimeoutError:
         logger.warning("Gemini timed out for interview %s; using fallback question", interview_id)
@@ -779,11 +733,6 @@ async def upload_voice_answer(
             candidate_answer=candidate_answer,
         )
 
-
-    # ---------------------------------------------------------
-    # 8. TUNATENGENEZA QUESTION MPYA
-    # ---------------------------------------------------------
-
     # Tunapata order number ya swali jipya.
     next_order_number = current_question.order_number + 1
 
@@ -795,19 +744,10 @@ async def upload_voice_answer(
         order_number=next_order_number
     )
 
-    # Tunaongeza swali kwenye database.
     db.add(new_question)
-
-    # Tunahifadhi database.
     db.commit()
-
-    # Tunafanya refresh kupata ID ya question.
     db.refresh(new_question)
 
-    # Return the text immediately. The frontend browser voice reads it without
-    # waiting for the optional Gemini TTS request.
-
-# Tunamrudishia frontend text pamoja na location ya audio.
     return {
     "message": "Voice answer processed successfully",
     "interview_id": interview.id,
@@ -817,4 +757,181 @@ async def upload_voice_answer(
     "next_question": next_question,
     "audio_url": None
 }
+
+
+def _process_candidate_answer(
+    db: Session,
+    interview: Interview,
+    current_question: Question,
+    candidate_answer: str,
+    current_user: User,
+):
+    db.add(Answer(
+        question_id=current_question.id,
+        answer_text=candidate_answer,
+        score=min(100.0, max(0.0, len(candidate_answer.split()) * 2.5)),
+        ai_feedback="Jibu limepokelewa na kuhifadhiwa kwa ajili ya tathmini ya interview.",
+    ))
+    db.commit()
+
+    if current_question.order_number >= 10:
+        InterviewService.complete_interview(
+            db=db,
+            interview_id=interview.id,
+            user_id=current_user.id,
+        )
+        return {
+            "message": "Interview completed successfully",
+            "interview_id": interview.id,
+            "question_id": current_question.id,
+            "transcription": candidate_answer,
+            "next_question_id": None,
+            "next_question": None,
+            "interview_completed": True,
+            "closing_message": "Asante kwa ushirikiano wako. Karibu uangalie report yako.",
+            "audio_url": None,
+        }
+
+    cv = (
+        db.query(Document)
+        .filter(
+            Document.user_id == current_user.id,
+            Document.document_type == "cv"
+        )
+        .first()
+    )
+    if cv is None:
+        raise HTTPException(status_code=400, detail="Candidate CV not found")
+
+    cv_text = PDFService.extract_text(cv.file_path)
+    if not cv_text.strip():
+        raise HTTPException(status_code=400, detail="Could not extract readable text from CV")
+
+    job = interview.application.job if interview.application else None
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Interview is not linked to a job"
+        )
+
+    job_information = f"""
+    JOB TITLE:
+    {job.title}
+
+    JOB DESCRIPTION:
+    {job.description}
+
+    LOCATION:
+    {job.location}
+
+    EMPLOYMENT TYPE:
+    {job.employment_type}
+
+    EDUCATION REQUIRED:
+    {job.education_required or "Not specified"}
+
+    EXPERIENCE REQUIRED:
+    {job.experience_required if job.experience_required is not None else "Not specified"}
+
+    SKILLS REQUIRED:
+    {job.skills_required or "Not specified"}
+    """
+
+    previous_questions = [
+        question.question_text
+        for question in db.query(Question)
+        .filter(Question.interview_id == interview.id)
+        .order_by(Question.order_number.asc())
+        .all()
+    ]
+
+    try:
+        next_question = AIService.analyze_answer_and_generate_next_question(
+            candidate_information=cv_text,
+            job_information=job_information,
+            current_question=current_question.question_text,
+            candidate_answer=candidate_answer,
+            previous_questions=previous_questions,
+        )
+    except Exception:
+        next_question = _fallback_question(
+            job,
+            question_number=current_question.order_number + 1,
+            previous_questions=previous_questions,
+            candidate_answer=candidate_answer,
+        )
+
+    if _normalize_question(next_question) in {
+        _normalize_question(question) for question in previous_questions
+    }:
+        next_question = _fallback_question(
+            job,
+            question_number=current_question.order_number + 1,
+            previous_questions=previous_questions,
+            candidate_answer=candidate_answer,
+        )
+
+    new_question = Question(
+        interview_id=interview.id,
+        question_text=next_question,
+        question_type="follow_up",
+        order_number=current_question.order_number + 1
+    )
+    db.add(new_question)
+    db.commit()
+    db.refresh(new_question)
+
+    return {
+        "message": "Answer processed successfully",
+        "interview_id": interview.id,
+        "question_id": current_question.id,
+        "transcription": candidate_answer,
+        "next_question_id": new_question.id,
+        "next_question": next_question,
+        "interview_completed": False,
+        "audio_url": None,
+    }
+
+
+@router.post(
+    "/{interview_id}/text-answer",
+    status_code=status.HTTP_201_CREATED
+)
+def submit_text_answer(
+    interview_id: int,
+    payload: TextAnswerRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    answer_text = (payload.answer_text or "").strip()
+    if not answer_text:
+        raise HTTPException(status_code=400, detail="Answer text is required")
+
+    interview = (
+        db.query(Interview)
+        .filter(
+            Interview.id == interview_id,
+            Interview.user_id == current_user.id
+        )
+        .first()
+    )
+    if interview is None:
+        raise HTTPException(status_code=404, detail="Interview not found")
+
+    current_question = (
+        db.query(Question)
+        .filter(Question.interview_id == interview_id)
+        .order_by(Question.order_number.desc())
+        .first()
+    )
+    if current_question is None:
+        raise HTTPException(status_code=400, detail="No interview question found")
+
+    return _process_candidate_answer(
+        db=db,
+        interview=interview,
+        current_question=current_question,
+        candidate_answer=answer_text,
+        current_user=current_user,
+    )
  

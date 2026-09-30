@@ -1,12 +1,7 @@
-
 from datetime import datetime
-
 from typing import TYPE_CHECKING
-
-
 from sqlalchemy import String, DateTime, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
 from app.models.base import Base
 
 if TYPE_CHECKING:
@@ -76,8 +71,7 @@ class User(Base):
         cascade="all, delete-orphan"
 
     )
-# User mmoja ana candidate profile moja.
-# Profile hii itahifadhi taarifa za elimu na uzoefu wa kazi.
+
     candidate_profile: Mapped["CandidateProfile | None"] = relationship(
        "CandidateProfile",
        back_populates="user",
@@ -85,12 +79,11 @@ class User(Base):
        cascade="all, delete-orphan"
     )
 
-    # User mmoja anaweza kuwa employer na kuwa na jobs nyingi.
     jobs: Mapped[list["Job"]] = relationship(
         "Job",
         back_populates="user"
     )
-    #user mmoja akiwa candidate anaweza kutuma application nyingi
+    
     applications: Mapped[list["Application"]] = relationship(
         "Application",
         back_populates="candidate",

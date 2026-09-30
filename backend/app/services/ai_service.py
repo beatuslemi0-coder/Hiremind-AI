@@ -1,25 +1,18 @@
-# Tuna-import Gemini SDK kwa ajili ya kuwasiliana na Gemini API.
-from google import genai
 
-# Tuna-import settings ili kusoma GEMINI_API_KEY na AI_MODEL.
+from google import genai
 from app.core.config import settings
 
-
-# Service hii ndiyo AI brain ya HIREMIND-AI.
 class AIService:
 
-    # Tunatengeneza Gemini client kwa kutumia API key kutoka kwenye settings.
     client = genai.Client(
         api_key=settings.GEMINI_API_KEY
     )
 
-    # Function hii inachambua taarifa za candidate kutoka kwenye CV/certificate.
     @staticmethod
     def analyze_candidate_document(
         candidate_information: str
     ) -> str:
 
-        # Prompt hii inamwelekeza Gemini kuchambua document ya candidate.
         prompt = f"""
 You are HIREMIND-AI, an AI interviewer designed for Tanzania.
 

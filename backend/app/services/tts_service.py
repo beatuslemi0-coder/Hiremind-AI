@@ -14,10 +14,7 @@ class TTSService:
         text: str,
         output_path: str
     ):
-
-        # TTS preview model inayotumika kwa Google GenAI SDK ya kisasa.
-        # Model ya "gemini-3.1-flash-tts-preview" haipo kwa SDK hii, hivyo
-        # inasababisha kutofautiana na API ya TTS kwenye endpoint ya sasa.
+        
         tts_model = "gemini-2.5-flash-preview-tts"
 
         client = genai.Client(

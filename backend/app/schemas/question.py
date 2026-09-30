@@ -1,16 +1,11 @@
 from datetime import datetime
-
 from pydantic import BaseModel, ConfigDict, Field
-
-
 from pydantic import BaseModel, ConfigDict
-
 
 class QuestionCreate(BaseModel):
     question_text: str
     question_type: str = "technical"
     order_number: int
-
 
 class QuestionResponse(BaseModel):
     id: int
@@ -20,7 +15,7 @@ class QuestionResponse(BaseModel):
     order_number: int
     created_at: datetime
 
-    model_config = ConfigDict(
+    class Config:
         from_attributes=True
-    )
+    
 

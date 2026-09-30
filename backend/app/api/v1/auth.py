@@ -1,4 +1,4 @@
-# APIRouter inatusaidia kutengeneza authentication endpoints.
+
 from fastapi import APIRouter, Depends, HTTPException, status
 
 # SQLAlchemy Session kwa ajili ya database.
@@ -15,10 +15,10 @@ from app.models.user import User
 # Schemas za registration na login.
 from app.schemas.user import (
     UserCreate,
-    UserLogin,
     UserResponse,
     TokenResponse
 )
+from app.schemas.auth import LoginRequest
 
 # User service yenye business logic.
 from app.services.user_service import UserService
@@ -34,9 +34,7 @@ router = APIRouter(
 )
 
 
-# ---------------------------------------------------------
 # REGISTER
-# ---------------------------------------------------------
 @router.post(
     "/register",
     response_model=UserResponse,
@@ -76,9 +74,8 @@ def register(
         )
 
 
-# ---------------------------------------------------------
 # LOGIN
-# ---------------------------------------------------------
+
 @router.get(
     "/me",
     response_model=UserResponse
@@ -88,6 +85,39 @@ def get_current_user_profile(
     current_user: User = Depends(get_current_user)
 ):
     return current_user
+
+
+def _token_for_user(user: User) -> TokenResponse:
+    access_token = create_access_token(
+        user_id=user.id,
+        role=user.role
+    )
+    return TokenResponse(
+        access_token=access_token,
+        token_type="bearer"
+    )
+
+
+@router.post(
+    "/session",
+    response_model=TokenResponse
+)
+def login_json(
+    data: LoginRequest,
+    db: Session = Depends(get_db)
+):
+    user = UserService.authenticate_user(
+        db=db,
+        email=data.email,
+        password=data.password
+    )
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+    return _token_for_user(user)
 
 
 @router.post(
@@ -102,7 +132,7 @@ def login(
     # Tunathibitisha email na password.
     user = UserService.authenticate_user(
         db=db,
-        email=form_data.username,  # OAuth2PasswordRequestForm inatumia 'username' kwa email.
+        email=form_data.username,  
         password=form_data.password
     )
 
@@ -117,14 +147,4 @@ def login(
             }
         )
 
-    # Tunatengeneza JWT baada ya login kufanikiwa.
-    access_token = create_access_token(
-        user_id=user.id,
-        role=user.role
-    )
-
-    # Tunamrudishia user token.
-    return TokenResponse(
-        access_token=access_token,
-        token_type="bearer"
-    )
+    return _token_for_user(user)

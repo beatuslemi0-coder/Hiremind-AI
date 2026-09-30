@@ -1,18 +1,8 @@
 from datetime import datetime
-
-# TYPE_CHECKING inasaidia kuzuia circular imports.
 from typing import TYPE_CHECKING
-
-# SQLAlchemy imports.
 from sqlalchemy import String, DateTime, ForeignKey
-
-# SQLAlchemy ORM imports.
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-# Base ya models zote.
 from app.models.base import Base
-from app.models.report import Report
-
 
 # Imports hizi hutumika kwa type checking tu.
 if TYPE_CHECKING:
@@ -20,8 +10,9 @@ if TYPE_CHECKING:
     from app.models.report import Report
     from app.models.user import User
     from app.models.application import Application
-
-
+    from app.models.attention_metric import AttentionMetric
+    from app.models.attention_session import AttentionSession
+    from app.models.attention_event import AttentionEvent
 
 # Model hii inawakilisha interview ya candidate.
 class Interview(Base):
@@ -105,4 +96,24 @@ class Interview(Base):
         uselist=False,
         cascade="all, delete-orphan"
     )
+    
+    # Interview moja inaweza kuwa na attention metrics nyingi.
+    # Kila metric inawakilisha observation kutoka kwenye camera.
+    attention_metrics: Mapped[list["AttentionMetric"]] = relationship(
+        "AttentionMetric",
+        back_populates="interview",
+        cascade="all, delete-orphan"
+    )
+    
+    attention_sessions: Mapped[list["AttentionSession"]] = relationship(
+    "AttentionSession",
+    back_populates="interview",
+    cascade="all, delete-orphan"
+    )
+    
+    attention_events: Mapped[list["AttentionEvent"]] = relationship(
+    "AttentionEvent",
+    back_populates="interview",
+    cascade="all, delete-orphan"
+)
 

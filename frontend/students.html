@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+```
+<title>Students - Student Results System</title>
+
+<link rel="stylesheet" href="css/style.css">
+```
+
+</head>
+
+<body>
+
+```
+<nav class="navbar">
+    <h2>🎓 Student Results System</h2>
+
+    <div>
+        <a href="dashboard.html" class="nav-link">
+            Dashboard
+        </a>
+
+        <button id="logoutBtn">Logout</button>
+    </div>
+</nav>
+
+
+<main class="page-container">
+
+    <h1>Manage Students </h1>
+
+
+    <!-- Add Student Form -->
+    <section class="form-card">
+
+        <h2>Add New Student</h2>
+
+        <form id="studentForm">
+
+            <div class="form-group">
+                <label>Full Name</label>
+
+                <input
+                    type="text"
+                    id="fullName"
+                    placeholder="Enter student full name"
+                    required
+                >
+            </div>
+
+
+            <div class="form-group">
+                <label>Class</label>
+
+                <input
+                    type="text"
+                    id="className"
+                    placeholder="Example: Form 4"
+                    required
+                >
+            </div>
+
+
+            <button type="submit">
+                Add Student
+            </button>
+
+            <p id="studentMessage"></p>
+
+        </form>
+
+    </section>
+
+    <section class="form-card" id="editStudentSection" style="display: none;">
+
+    <h2>Edit Student</h2>
+
+    <form id="editStudentForm">
+
+        <div class="form-group">
+            <label>Full Name</label>
+            <input
+                type="text"
+                id="editFullName"
+                required
+            >
+        </div>
+
+        <div class="form-group">
+            <label>Class</label>
+            <input
+                type="text"
+                id="editClassName"
+                required
+            >
+        </div>
+
+        <button type="submit">
+            Update Student
+        </button>
+
+        <button
+            type="button"
+            id="cancelEditBtn">
+            Cancel
+        </button>
+
+    </form>
+
+    </section>
+
+
+    <!-- Students Table -->
+    <section class="table-card">
+
+        <h2>Students List</h2>
+
+        <table>
+
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Full Name</th>
+                    <th>Class</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+
+            <tbody id="studentsTable">
+                <!-- Students will appear here -->
+            </tbody>
+
+        </table>
+
+    </section>
+
+</main>
+
+
+<script src="js/students.js"></script>
+```
+
+</body>
+</html>

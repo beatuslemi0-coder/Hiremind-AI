@@ -1,4 +1,4 @@
-# Tunatumia PdfReader kusoma maandishi yaliyomo kwenye PDF.
+
 from pypdf import PdfReader
 
 

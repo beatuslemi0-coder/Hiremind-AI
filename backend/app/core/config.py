@@ -9,24 +9,21 @@ class Settings(BaseSettings):
     SECRET_KEY: str
     ALGORITHM: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        extra="ignore"
-        )
-
-# AI API key na model vinatoka kwenye environment variables.
-    GEMINI_API_KEY: str
-
-# Jina la AI model tunayotumia.
-    AI_MODEL: str
-
+    GEMINI_API_KEY:str
+    AI_MODEL:str
+    
     SMTP_HOST: str | None = None
     SMTP_PORT: int = 587
     SMTP_USERNAME: str | None = None
     SMTP_PASSWORD: str | None = None
-    SMTP_FROM_EMAIL: str | None = None
-    SMTP_USE_TLS: bool = True
+    SMTP_FROM_MAIL: str | None = None
+    SMTP_USE_TLS: str | None = None
+    
+    
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        extra="ignore"
+        )
 
 settings = Settings()
 

@@ -47,10 +47,7 @@ if config.config_file_name is not None:
 # Tunaipa Alembic metadata yenye models zote za project.
 target_metadata = Base.metadata
 
-
-# ============================================================
 # OFFLINE MIGRATIONS
-# ============================================================
 
 def run_migrations_offline() -> None:
     """Run migrations in offline mode."""
@@ -73,9 +70,7 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
-# ============================================================
 # ONLINE MIGRATIONS
-# ============================================================
 
 def run_migrations_online() -> None:
     """Run migrations in online mode."""

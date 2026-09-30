@@ -1,0 +1,2766 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  background-color: #f8fafc;
+  color: #1a1c1c;
+}
+
+/* ==========================================================================
+   YELLOW → BLUE GRADIENT HOVER SYSTEM
+   One gradient family (gold #fbbf24 → sky #3b82f6), three hover characters
+   that get composed per section:
+     .grad-ring  — animated gradient border that fades in on hover
+     .grad-sheen — diagonal light sweep across the surface
+     .grad-glow  — soft gold/blue bloom shadow
+   All respect prefers-reduced-motion (see bottom).
+   ========================================================================== */
+:root {
+  --grad-line: linear-gradient(120deg, #22d3ee 0%, #7dd3fc 32%, #e0265c 72%, #b11345 100%);
+  --grad-soft: linear-gradient(115deg, transparent 25%, rgba(34, 211, 238, 0.13) 45%, rgba(224, 38, 92, 0.14) 60%, transparent 80%);
+  /* Glassmorphism tokens — one source of truth for every frosted surface. */
+  --glass-bg: rgba(255, 255, 255, 0.62);
+  --glass-bg-strong: rgba(255, 255, 255, 0.78);
+  --glass-border: rgba(255, 255, 255, 0.65);
+  --glass-ring: rgba(19, 90, 173, 0.10);
+  --glass-highlight: rgba(255, 255, 255, 0.55);
+  --glass-shadow: 0 8px 32px rgba(15, 40, 90, 0.12), 0 1px 2px rgba(15, 40, 90, 0.06);
+}
+
+/* Ambient aurora behind every page: keeps glass surfaces reading as glass
+   instead of flat translucency. Light theme only — the default theme is
+   TOTAL BLACK and renders no ambient tint at all. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(52rem 40rem at 12% -8%, rgba(251, 191, 36, 0.16), transparent 60%),
+    radial-gradient(46rem 36rem at 88% 4%, rgba(59, 130, 246, 0.18), transparent 62%),
+    radial-gradient(40rem 34rem at 50% 108%, rgba(19, 90, 173, 0.14), transparent 60%);
+}
+
+.dark body::before {
+  background: none;
+}
+
+.grad-ring {
+  position: relative;
+}
+.grad-ring::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: var(--grad-line);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+}
+.grad-ring:hover::after,
+.grad-ring:focus-visible::after {
+  opacity: 1;
+}
+
+.grad-sheen {
+  position: relative;
+  overflow: hidden;
+}
+.grad-sheen::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--grad-soft);
+  transform: translateX(-130%) skewX(-8deg);
+  transition: transform 0.75s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+.grad-sheen:hover::before {
+  transform: translateX(130%) skewX(-8deg);
+}
+
+.grad-glow {
+  transition: box-shadow 0.35s ease, transform 0.35s ease, border-color 0.35s ease;
+}
+.grad-glow:hover {
+  border-color: rgba(224, 38, 92, 0.38);
+  box-shadow:
+    0 0 0 1px rgba(224, 38, 92, 0.22),
+    0 0 26px rgba(224, 38, 92, 0.16),
+    0 0 44px rgba(34, 211, 238, 0.10),
+    0 12px 32px rgba(15, 40, 90, 0.10);
+}
+
+/* Section-specific hover characters --------------------------------------- */
+
+/* Stat cards: the glow bloom (no sheen — numbers should stay readable) */
+.stat-card {
+  @apply app-card app-card--hover grad-glow p-4 text-center;
+}
+
+/* List rows: sheen sweep + lift (fast, repeated scanning) */
+.list-row {
+  @apply app-card app-card--hover grad-sheen grad-ring p-4;
+}
+
+/* Form containers: calm — gradient ring only, no movement */
+.form-card {
+  @apply app-card grad-ring p-5 sm:p-6;
+}
+
+/* Glass nav / glass surfaces ---------------------------------------------- */
+.glass-nav {
+  @apply sticky top-0 z-40 border-b backdrop-blur-2xl;
+  background: rgba(248, 250, 252, 0.6);
+  border-color: var(--glass-border);
+  box-shadow: 0 1px 0 var(--glass-highlight), 0 8px 32px rgba(15, 40, 90, 0.06);
+}
+
+.glass-pill {
+  @apply inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium backdrop-blur-md;
+  border-color: rgba(19, 90, 173, 0.14);
+  background: rgba(255, 255, 255, 0.55);
+  transition: border-color 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+}
+.glass-pill:hover {
+  border-color: transparent;
+  background: linear-gradient(#fff, #fff) padding-box, var(--grad-line) border-box;
+  border: 1.5px solid transparent;
+  box-shadow: 0 0 14px rgba(224, 38, 92, 0.26);
+}
+
+/* Inline / nav links: glass pill with the gradient border on hover */
+.alink {
+  @apply glass-pill text-brand-blue;
+}
+.alink:hover {
+  color: #0f4c94;
+  text-decoration: none;
+}
+
+/* Landing-page component classes (ported from the TalentFlow design) */
+@layer components {
+  .glass-card {
+    @apply border shadow-soft backdrop-blur-xl;
+    background: var(--glass-bg-strong);
+    border-color: var(--glass-border);
+  }
+
+  /* The reusable frosted panel: translucent fill, real blur, a bright top-left
+     highlight so the edge reads as a bevel, and the shared soft shadow. */
+  .glass-panel {
+    @apply rounded-2xl border backdrop-blur-xl;
+    background: var(--glass-bg);
+    border-color: var(--glass-border);
+    box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-highlight);
+  }
+
+  .lglass {
+    @apply rounded-2xl border backdrop-blur-xl;
+    background: var(--glass-bg);
+    border-color: var(--glass-border);
+    box-shadow:
+      0 1px 2px rgba(15, 40, 90, 0.05),
+      0 12px 32px -12px rgba(19, 90, 173, 0.20),
+      inset 0 1px 0 var(--glass-highlight);
+    transition: box-shadow 0.35s ease, transform 0.35s ease, border-color 0.35s ease;
+  }
+
+  .lglass-hover:hover {
+    transform: translateY(-3px);
+    border-color: rgba(19, 90, 173, 0.30);
+    box-shadow:
+      0 2px 4px rgba(15, 40, 90, 0.06),
+      0 22px 48px -14px rgba(19, 90, 173, 0.30),
+      0 0 0 1px rgba(251, 191, 36, 0.20),
+      inset 0 1px 0 var(--glass-highlight);
+  }
+
+  .lglass-deep {
+    @apply rounded-2xl border backdrop-blur-xl;
+    background: var(--glass-bg-strong);
+    border-color: var(--glass-border);
+    box-shadow:
+      0 24px 48px -16px rgba(15, 40, 90, 0.22),
+      0 56px 96px -32px rgba(19, 90, 173, 0.24),
+      inset 0 1px 0 var(--glass-highlight);
+  }
+
+  .leyebrow {
+    @apply inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[11px] font-bold uppercase;
+    letter-spacing: 0.16em;
+    border-color: rgba(19, 90, 173, 0.20);
+    background: linear-gradient(120deg, rgba(251, 191, 36, 0.14), rgba(59, 130, 246, 0.12));
+    color: #1d4ed8;
+  }
+
+  .lchip {
+    @apply flex h-11 w-11 items-center justify-center rounded-xl border text-primary;
+    border-color: rgba(19, 90, 173, 0.16);
+    background: linear-gradient(140deg, rgba(251, 191, 36, 0.18), rgba(59, 130, 246, 0.14));
+  }
+
+  .ldivider {
+    @apply border-t;
+    border-color: rgba(19, 90, 173, 0.10);
+  }
+
+  /* ---- Landing motion layer (GSAP) ---- */
+
+  /* Hero aurora orbs: base position/size only — GSAP drives the drift loop. */
+  .lorb {
+    @apply pointer-events-none absolute rounded-full;
+    filter: blur(60px);
+  }
+
+  /* Logo marquee: two copies of the row translate -50% and loop. */
+  .lmarquee {
+    @apply flex w-max items-center;
+    animation: lmarquee-slide 36s linear infinite;
+  }
+  .lmarquee:hover {
+    animation-play-state: paused;
+  }
+  .lmarquee-mask {
+    mask-image: linear-gradient(90deg, transparent, black 12%, black 88%, transparent);
+    -webkit-mask-image: linear-gradient(90deg, transparent, black 12%, black 88%, transparent);
+  }
+
+  @keyframes lmarquee-slide {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+
+  /* Shimmer sweep for the urgency line / highlighted text. */
+  .lshimmer {
+    position: relative;
+    overflow: hidden;
+  }
+  .lshimmer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      105deg,
+      transparent 40%,
+      rgba(255, 255, 255, 0.22) 50%,
+      transparent 60%
+    );
+    transform: translateX(-120%);
+  }
+  .lshimmer-run::after {
+    animation: lshimmer-sweep 3.2s ease-in-out infinite;
+  }
+
+  @keyframes lshimmer-sweep {
+    0%, 55% { transform: translateX(-120%); }
+    85%, 100% { transform: translateX(120%); }
+  }
+
+  .dark .lshimmer::after {
+    background: linear-gradient(
+      105deg,
+      transparent 40%,
+      rgba(255, 255, 255, 0.16) 50%,
+      transparent 60%
+    );
+  }
+
+  /* Session-showcase waveform bars (GSAP drives scaleY). */
+  .lwave {
+    @apply flex h-14 items-center justify-center gap-[3px];
+  }
+  .lwave-bar {
+    @apply w-1.5 rounded-full;
+    height: 100%;
+    transform: scaleY(0.25);
+    transform-origin: center;
+    background: rgba(255, 255, 255, 0.75);
+  }
+  .dark .lwave-bar {
+    background: rgba(255, 255, 255, 0.65);
+  }
+
+  /* Pulsing "live" dot. */
+  @keyframes lpulse {
+    0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.55); }
+    70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  }
+  .lpulse {
+    animation: lpulse 1.8s ease-out infinite;
+  }
+
+  /* Landing header, scrolled state (class toggled by GSAP ScrollTrigger). */
+  .lnav.is-scrolled {
+    background: var(--glass-bg-strong);
+    box-shadow: 0 12px 32px -14px rgba(15, 40, 90, 0.28);
+  }
+
+  .btn {
+    @apply grad-sheen inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold transition duration-200 focus:outline-none focus:ring-2 focus:ring-primary/30;
+  }
+
+  .btn-primary {
+    @apply bg-primary text-white hover:brightness-110 hover:shadow-glow-gold active:scale-95;
+  }
+
+  .btn-secondary {
+    @apply grad-ring border border-primary/30 bg-transparent text-primary hover:bg-primary/5 active:scale-95;
+  }
+
+  .nav-link {
+    @apply glass-pill text-on-surface-variant;
+  }
+  .nav-link:hover {
+    color: #0f4c94;
+  }
+}
+
+.select {
+  @apply w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm
+         focus:border-brand-blue focus:outline-none disabled:bg-gray-50 disabled:text-gray-400
+         shadow-sm transition-all duration-200
+         focus:ring-4 focus:ring-brand-blue/10;
+}
+
+/* ==========================================================================
+   App design system (shadcn-style primitives, applied app-wide)
+   The landing page keeps its own glass classes; these power every signed-in
+   screen: consistent cards, buttons, badges, inputs, motion.
+   ========================================================================== */
+@layer components {
+  /* --- Cards: frosted glass surface — translucent fill + blur + bevel + lift --- */
+  .app-card {
+    @apply rounded-2xl border backdrop-blur-xl
+           transition-all duration-300 ease-out;
+    background: var(--glass-bg);
+    border-color: var(--glass-border);
+    box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-highlight);
+  }
+
+  .app-card--hover {
+    @apply hover:-translate-y-0.5;
+  }
+  .app-card--hover:hover {
+    border-color: rgba(224, 38, 92, 0.35);
+    box-shadow:
+      0 12px 40px rgba(15, 40, 90, 0.14),
+      0 0 0 1px rgba(224, 38, 92, 0.18),
+      0 0 30px rgba(224, 38, 92, 0.10),
+      inset 0 1px 0 var(--glass-highlight);
+  }
+
+  /* --- Buttons: one vocabulary everywhere --- */
+  .abtn {
+    @apply grad-sheen inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5
+           text-sm font-semibold transition-all duration-200 ease-out
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(224,38,92,0.4)]
+           active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .abtn-primary {
+    @apply abtn text-white shadow-sm
+           hover:-translate-y-px;
+    background-color: #b11345;
+    background-image: var(--g-ember, linear-gradient(120deg, #b11345 0%, #e0265c 48%, #ff5c8a 100%));
+    background-size: 170% 100%;
+    background-position: 12% 50%;
+    box-shadow: 0 6px 18px -6px rgba(177, 19, 69, 0.45);
+    transition:
+      transform 0.25s ease,
+      box-shadow 0.25s ease,
+      background-position 0.45s ease,
+      filter 0.25s ease;
+  }
+  .abtn-primary:hover {
+    background-position: 85% 50%;
+    box-shadow:
+      0 0 0 1px rgba(224, 38, 92, 0.35),
+      0 0 24px rgba(224, 38, 92, 0.28),
+      0 10px 26px -8px rgba(177, 19, 69, 0.5);
+    filter: saturate(1.08);
+  }
+
+  .abtn-accent {
+    @apply abtn bg-brand-orange text-white shadow-sm
+           hover:brightness-105 hover:shadow-glow-gold hover:-translate-y-px;
+  }
+
+  .abtn-outline {
+    @apply abtn grad-ring border-2 text-gray-700 backdrop-blur-md
+           hover:border-brand-gold/50 hover:text-brand-blue hover:bg-brand-blue/[0.04];
+    border-color: rgba(255, 255, 255, 0.6);
+    background: rgba(255, 255, 255, 0.5);
+  }
+
+  .abtn-ghost {
+    @apply abtn text-gray-600 hover:bg-gray-100 hover:text-gray-900;
+  }
+
+  .abtn-danger {
+    @apply abtn border-2 border-gray-200 bg-white text-gray-500
+           hover:border-brand-pink/40 hover:bg-brand-pink/[0.04] hover:text-brand-pink;
+  }
+
+  .abtn-sm {
+    @apply px-3 py-1.5 text-xs rounded-lg;
+  }
+
+  /* --- Inputs --- */
+  .ainput {
+    @apply w-full rounded-xl border px-3.5 py-2.5 text-sm
+           text-gray-900 placeholder:text-gray-400 backdrop-blur-md
+           transition-all duration-200
+           focus:border-[rgba(224,38,92,0.55)] focus:outline-none focus:ring-4 focus:ring-[rgba(224,38,92,0.10)]
+           disabled:text-gray-400;
+    border-color: var(--glass-border);
+    background: rgba(255, 255, 255, 0.55);
+    box-shadow: inset 0 1px 0 var(--glass-highlight), 0 1px 2px rgba(15, 40, 90, 0.06);
+  }
+  .ainput:disabled {
+    background: rgba(241, 245, 249, 0.6);
+  }
+
+  .alabel {
+    @apply block text-sm font-medium text-gray-700 mb-1.5;
+  }
+
+  /* --- Badges: rounded, tinted, never shouting --- */
+  .abadge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold;
+  }
+
+  .abadge-green {
+    @apply abadge bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20;
+  }
+
+  .abadge-amber {
+    @apply abadge bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20;
+  }
+
+  .abadge-red {
+    @apply abadge bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-600/20;
+  }
+
+  .abadge-gray {
+    @apply abadge bg-gray-100 text-gray-600 ring-1 ring-inset ring-gray-500/20;
+  }
+
+  .abadge-blue {
+    @apply abadge bg-white/[0.08] text-gray-800 ring-1 ring-inset ring-gray-500/25;
+  }
+
+  .abadge-gold {
+    @apply abadge bg-white/[0.08] text-gray-800 ring-1 ring-inset ring-gray-500/25;
+  }
+
+  /* --- Progress track --- */
+  .aprogress {
+    @apply h-2 w-full overflow-hidden rounded-full bg-gray-100;
+  }
+
+  .aprogress-fill {
+    @apply h-full rounded-full
+           transition-[width] duration-700 ease-out;
+    background-image: linear-gradient(90deg, #22d3ee 0%, #e0265c 60%, #b11345 100%);
+  }
+
+  /* --- Reveal-on-scroll (Anime.js drives these) --- */
+  .reveal {
+    opacity: 0;
+  }
+
+  .reveal-in {
+    opacity: 1;
+  }
+}
+
+/* ==========================================================================
+   DARK THEME — .dark on <html> (ThemeContext). Two layers:
+   1. Semantic classes above get dark variants here.
+   2. Neutral utility remaps below (bg-white, text-gray-*) so the whole app
+      — including pages using raw Tailwind utilities — goes dark coherently.
+   ========================================================================== *//* --- Semantic component dark variants — total-black design ---
+   Canvas #000, surfaces near-black neutral glass, white pill CTAs.
+   No hue tinting: borders/shadows are pure neutral. */
+.dark body {
+  background-color: #000000;
+  color: #f2f2f2;
+}
+
+.dark .glass-nav {
+  background: rgba(0, 0, 0, 0.72);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04), 0 8px 32px rgba(0, 0, 0, 0.6);
+}
+
+.dark .glass-pill {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+  color: #d4d4d4;
+}
+.dark .glass-pill:hover {
+  background: rgba(255, 255, 255, 0.10);
+  color: #ffffff;
+}
+.dark .alink {
+  color: #ffffff;
+}
+.dark .alink:hover {
+  color: rgba(255, 255, 255, 0.75);
+}
+.dark .nav-link {
+  color: #d4d4d4;
+}
+.dark .nav-link:hover {
+  color: #ffffff;
+}
+
+.dark .glass-card {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.09);
+}
+
+.dark .glass-panel {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.09);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.dark .lglass {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.09);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    0 16px 40px -16px rgba(0, 0, 0, 0.7),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.dark .lglass-hover:hover {
+  border-color: rgba(255, 255, 255, 0.24);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.5),
+    0 24px 56px -18px rgba(0, 0, 0, 0.8),
+    0 0 0 1px rgba(255, 255, 255, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.dark .lglass-deep {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.10);
+  box-shadow:
+    0 32px 64px -20px rgba(0, 0, 0, 0.85),
+    0 0 0 1px rgba(255, 255, 255, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+
+.dark .leyebrow {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.05);
+  color: #a3a3a3;
+}
+
+.dark .lchip {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: #e5e5e5;
+}
+
+.dark .ldivider {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.dark .lnav.is-scrolled {
+  background: rgba(0, 0, 0, 0.85);
+}
+
+.dark .select {
+  border-color: rgba(255, 255, 255, 0.14);
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #f2f2f2;
+}
+.dark .select:focus {
+  border-color: rgba(255, 255, 255, 0.55);
+}
+.dark .select:disabled {
+  background-color: rgba(255, 255, 255, 0.03);
+  color: #737373;
+}
+
+.dark .app-card {
+  border-color: rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+.dark .app-card--hover:hover {
+  border-color: rgba(224, 38, 92, 0.45);
+}
+.dark .app-card--hover:hover {
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.65),
+    0 0 0 1px rgba(224, 38, 92, 0.28),
+    0 0 30px rgba(224, 38, 92, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* Primary button: ember gradient in both app themes — the palette identity
+   carried into the signed-in app (night pages style it the same way). */
+.dark .abtn-primary {
+  background-color: #b11345;
+  color: #ffffff;
+}
+.dark .abtn-primary:hover {
+  background-color: #b11345;
+}
+.dark .abtn-outline {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f2f2f2;
+}
+.dark .abtn-outline:hover {
+  border-color: rgba(255, 255, 255, 0.55);
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.08);
+}
+.dark .abtn-ghost {
+  color: #d4d4d4;
+}
+.dark .abtn-ghost:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+}
+.dark .abtn-danger {
+  border-color: rgba(255, 255, 255, 0.14);
+  background-color: rgba(255, 255, 255, 0.04);
+  color: #d4d4d4;
+}
+.dark .abtn-danger:hover {
+  border-color: rgba(248, 113, 113, 0.55);
+  background-color: rgba(248, 113, 113, 0.08);
+  color: #fca5a5;
+}
+
+.dark .ainput {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f2f2f2;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.dark .ainput::placeholder { color: #737373; }
+.dark .ainput:focus {
+  border-color: rgba(224, 38, 92, 0.6);
+}
+.dark .ainput:disabled {
+  background-color: rgba(255, 255, 255, 0.03);
+  color: #737373;
+}
+.dark .alabel {
+  color: #a3a3a3;
+}
+
+.dark .abadge-green {
+  @apply bg-emerald-500/10 text-emerald-300 ring-emerald-400/25;
+}
+.dark .abadge-amber {
+  @apply bg-amber-500/10 text-amber-300 ring-amber-400/25;
+}
+.dark .abadge-red {
+  @apply bg-rose-500/10 text-rose-300 ring-rose-400/25;
+}
+.dark .abadge-gray {
+  background-color: rgba(255, 255, 255, 0.07);
+  color: #d4d4d4;
+  --tw-ring-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 0 1px var(--tw-ring-color);
+}
+.dark .abadge-blue {
+  @apply bg-white/[0.08] text-white ring-white/20;
+}  .dark .abadge-gold {
+    @apply bg-white/[0.08] text-white ring-white/25;
+  }
+
+.dark .aprogress {
+  background: rgba(255, 255, 255, 0.10);
+}
+
+.dark .btn-primary {
+  background-color: #ffffff;
+  color: #000000;
+}
+.dark .btn-primary:hover {
+  background-color: #e5e5e5;
+}
+.dark .btn-secondary {
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+.dark .btn-secondary:hover {
+  background-color: rgba(255, 255, 255, 0.10);
+}
+
+/* --- Neutral utility remaps (unlayered: wins over Tailwind utilities) --- */
+.dark .bg-white { background-color: rgba(255, 255, 255, 0.05); }
+.dark .bg-gray-50 { background-color: #0a0a0a; }
+.dark .bg-gray-100 { background-color: rgba(255, 255, 255, 0.07); }
+.dark .bg-gray-200 { background-color: rgba(255, 255, 255, 0.12); }
+.dark .bg-gray-900 { background-color: #000000; }
+.dark .bg-gray-900\/90 { background-color: rgba(0, 0, 0, 0.9); }
+
+.dark .text-gray-900 { color: #f2f2f2; }
+.dark .text-gray-800 { color: #e5e5e5; }
+.dark .text-gray-700 { color: #d4d4d4; }
+.dark .text-gray-600 { color: #a3a3a3; }
+.dark .text-gray-500 { color: #8a8a8a; }
+.dark .text-gray-400 { color: #737373; }
+.dark .text-gray-300 { color: #5c5c5c; }
+
+.dark .border-gray-100 { border-color: rgba(255, 255, 255, 0.08); }
+.dark .border-gray-200 { border-color: rgba(255, 255, 255, 0.12); }
+.dark .border-gray-50 { border-color: rgba(255, 255, 255, 0.06); }
+.dark .border-gray-200\/80 { border-color: rgba(255, 255, 255, 0.10); }
+.dark .divide-gray-50 > :not([hidden]) ~ :not([hidden]) { border-color: rgba(255, 255, 255, 0.06); }
+
+.dark .hover\:bg-gray-50:hover { background-color: rgba(255, 255, 255, 0.05); }
+.dark .hover\:bg-gray-100:hover { background-color: rgba(255, 255, 255, 0.08); }
+.dark .hover\:bg-blue-50:hover { background-color: rgba(255, 255, 255, 0.08); }
+
+.dark .placeholder\:text-gray-400::placeholder { color: #737373; }
+
+.dark input[type="checkbox"] { accent-color: #ffffff; }
+
+/* Landing-page tokens go dark too */
+.dark .text-on-surface { color: #f2f2f2; }
+.dark .text-on-surface-variant { color: #a3a3a3; }
+
+.dark ::selection { background: rgba(255, 255, 255, 0.25); }
+
+/* Row lift for interactive lists is defined above (grad-sheen + grad-ring) */
+
+/* ---- Live session: AI interviewer avatar -------------------------------- */
+@keyframes avatar-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+@keyframes avatar-blink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.08); }
+}
+
+@keyframes avatar-mouth-talk {
+  0%, 100% { transform: scaleY(0.25); }
+  25% { transform: scaleY(1); }
+  55% { transform: scaleY(0.45); }
+  80% { transform: scaleY(0.85); }
+}
+
+@keyframes aura-pulse {
+  0%, 100% { opacity: 0.45; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(1.06); }
+}
+
+@keyframes mic-ring {
+  0% { box-shadow: 0 0 0 0 rgba(227, 41, 124, 0.45); }
+  70% { box-shadow: 0 0 0 14px rgba(227, 41, 124, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(227, 41, 124, 0); }
+}
+
+.avatar-idle {
+  animation: avatar-breathe 4s ease-in-out infinite;
+}
+
+.avatar-talking .avatar-mouth {
+  animation: avatar-mouth-talk 0.45s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.avatar-blink {
+  animation: avatar-blink 5.5s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.aura {
+  animation: aura-pulse 3.2s ease-in-out infinite;
+}
+
+.mic-live {
+  animation: mic-ring 1.6s ease-out infinite;
+}
+
+/* Typewriter headline (GSAP drives the text; CSS draws the caret) */
+.type-caret {
+  display: inline-block;
+  width: 0.08em;
+  height: 0.92em;
+  margin-left: 0.08em;
+  border-radius: 2px;
+  background: currentColor;
+  vertical-align: -0.08em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .night .auth-card:hover,
+  .night .nglass:hover {
+    transform: none;
+  }
+  .night .nfield:focus {
+    box-shadow: 0 0 0 1px var(--n-crimson);
+  }
+  .night .nbtn-primary:hover {
+    transform: none;
+  }
+  .app-card, .abtn, .ainput {
+    transition: none;
+  }
+  .app-card, .glass-panel, .glass-card, .glass-nav {
+    backdrop-filter: none;
+  }
+  body::before {
+    display: none;
+  }
+  .reveal {
+    opacity: 1;
+  }
+  .grad-sheen::before,
+  .grad-ring::after {
+    display: none;
+  }
+  .grad-glow:hover {
+    box-shadow: none;
+  }
+  .avatar-idle, .avatar-talking .avatar-mouth, .avatar-blink, .aura, .mic-live {
+    animation: none;
+  }
+  .lmarquee {
+    animation: none;
+  }
+  .lshimmer-run::after {
+    animation: none;
+    transform: none;
+    display: none;
+  }
+  .lpulse {
+    animation: none;
+  }
+  .type-caret {
+    animation: none;
+  }
+}
+
+/* ==========================================================================
+   NIGHT PALETTE LAYER (.night on a wrapper; normally paired with .dark)
+   The client palette (colors.png) as one identity: deep-indigo canvas,
+   indigo/plum glass tiers, mauve edges, crimson accent, cyan echo from the
+   splash image. Applied to the landing page (dark-only) and auth pages
+   via NightPage. Signed-in app pages are untouched.
+   ========================================================================== */
+.night {
+  --n-canvas: #02021b;
+  --n-indigo: #0b0443;
+  --n-plum: #250636;
+  --n-mauve: #311a46;
+  --n-crimson: #b11345;
+  --n-crimson-bright: #e0265c;
+  --n-cyan: #22d3ee;
+  --n-ink: #f2f2f8;
+  --n-ink-dim: #b9b3d6;
+  --n-ink-faint: #7d76a8;
+
+  /* Glass tiers — palette colors at low opacity over the splash image;
+     blur keeps text readable without flat fills. */
+  --n-glass: linear-gradient(155deg, rgba(11, 4, 67, 0.70), rgba(37, 6, 54, 0.66));
+  --n-glass-strong: linear-gradient(155deg, rgba(11, 4, 67, 0.88), rgba(37, 6, 54, 0.85));
+  --n-glass-deep: linear-gradient(155deg, rgba(37, 6, 54, 0.78), rgba(49, 26, 70, 0.74));
+  --n-edge: rgba(255, 255, 255, 0.10);
+  --n-edge-soft: rgba(255, 255, 255, 0.06);
+  --n-edge-bright: rgba(224, 38, 92, 0.55);
+
+  /* Remap the app's semantic glass tokens so wizard pages inherit the night
+     look without touching their JSX. */
+  --glass-bg: rgba(11, 4, 67, 0.55);
+  --glass-bg-strong: rgba(11, 4, 67, 0.80);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-highlight: rgba(255, 255, 255, 0.10);
+  --glass-shadow: 0 8px 32px rgba(2, 2, 27, 0.55), 0 1px 2px rgba(2, 2, 27, 0.40);
+
+  /* Own stacking context; transparent — the canvas comes from the body (see
+     html:has(.night) body) so the App-level splash layers stay visible. */
+  isolation: isolate;
+  background-color: transparent;
+  color: var(--n-ink);
+}
+
+/* Night pages are dark-only: the light/dark toggle would fight the forced
+   shell, so it disappears on any night page (both wrapper class names),
+   wherever the toggle is mounted — App chrome, landing header, etc. */
+html:has(.night) .theme-toggle,
+html:has(.landing-night) .theme-toggle {
+  display: none;
+}
+
+/* App chrome (language bar etc.) sits outside the night wrapper; paint the
+   body in the night canvas so the strips above/below the wrapper blend in
+   instead of flashing .dark's pure black. */
+html:has(.night) body,
+html:has(.landing-night) body {
+  background-color: #02021b;
+}
+
+/* Wizard progress steps on night: crimson current step, plum done/todo.
+   (ProgressSteps renders only in the wizard header, never on app pages.) */
+.night .pstep--active {
+  background: linear-gradient(120deg, var(--n-crimson), var(--n-crimson-bright));
+  border: 1px solid rgba(224, 38, 92, 0.6);
+  box-shadow: 0 6px 20px -6px rgba(177, 19, 69, 0.6);
+  animation: pstep-glow 2.6s ease-in-out infinite;
+}
+.night .pstep--done {
+  background: rgba(49, 26, 70, 0.55);
+  color: var(--n-ink-dim);
+  border: 1px solid var(--n-edge);
+}
+.night .pstep--todo {
+  background: rgba(2, 2, 27, 0.4);
+  color: var(--n-ink-faint);
+  border: 1px solid var(--n-edge-soft);
+}
+.night .pstep-line {
+  background-color: var(--n-edge);
+}
+
+/* ---- Shared splash backdrop: fixed image + scrims, page content above ----
+   Landing mounts .night-bg directly; NightPage renders it too. */
+/* Photo-forward like the reference: the splash image stays visible everywhere;
+   darkness comes from a light top/bottom band and the veil's left reading
+   vignette where headlines sit, not from a full-page wash. */
+.night-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background-image:
+    linear-gradient(180deg, rgba(2, 2, 27, 0.40) 0%, rgba(2, 2, 27, 0.10) 24%, rgba(11, 4, 67, 0.14) 60%, rgba(2, 2, 27, 0.36) 100%),
+    url("../assets/splash.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* Purple palette tint + a left-edge vignette that keeps hero/headline copy
+   readable while the right side lets the photo glow through. */
+.night-veil {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    linear-gradient(100deg, rgba(2, 2, 27, 0.44) 0%, rgba(2, 2, 27, 0.18) 36%, rgba(2, 2, 27, 0) 62%),
+    linear-gradient(160deg, rgba(11, 4, 67, 0.14), rgba(37, 6, 54, 0.18) 55%, rgba(49, 26, 70, 0.14)),
+    radial-gradient(60rem 40rem at 78% 10%, rgba(177, 19, 69, 0.08), transparent 60%);
+}
+
+/* ---- Night glass cards + hover choreography ---- */
+.night .nglass {
+  position: relative;
+  border: 1px solid var(--n-edge);
+  border-radius: 1.25rem;
+  background: var(--n-glass);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 16px 40px -16px rgba(2, 2, 27, 0.65);
+  transition:
+    border-color 0.35s ease,
+    box-shadow 0.35s ease,
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    background 0.35s ease;
+}
+
+.night .nglass:hover {
+  transform: translateY(-4px);
+  border-color: var(--n-edge-bright);
+  background: var(--n-glass-deep);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.08) inset,
+    0 0 0 1px rgba(177, 19, 69, 0.35),
+    0 0 30px rgba(177, 19, 69, 0.28),
+    0 26px 56px -18px rgba(2, 2, 27, 0.75);
+}
+
+/* Tint variant for stats / FAQ rows (plum tier). */
+.night .nglass--plum {
+  background: var(--n-glass-deep);
+}
+.night .nglass--plum:hover {
+  background: linear-gradient(155deg, rgba(49, 26, 70, 0.74), rgba(37, 6, 54, 0.70));
+}
+
+/* Non-lifting variant (accordion items — content moves inside). */
+.night .nglass--flat:hover {
+  transform: none;
+}
+
+/* ---- Auth cards: grander entrance + hover ---- */
+.night .auth-card {
+  position: relative;
+  border: 1px solid var(--n-edge);
+  border-radius: 1.5rem;
+  background: var(--n-glass-strong);
+  -webkit-backdrop-filter: blur(22px);
+  backdrop-filter: blur(22px);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.07) inset,
+    0 32px 80px -24px rgba(2, 2, 27, 0.8);
+  transition:
+    border-color 0.35s ease,
+    box-shadow 0.35s ease,
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: ncard-in 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.night .auth-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--n-edge-bright);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.09) inset,
+    0 0 0 1px rgba(177, 19, 69, 0.38),
+    0 0 36px rgba(177, 19, 69, 0.30),
+    0 36px 88px -28px rgba(2, 2, 27, 0.85);
+}
+
+/* Crimson-cyan conic edge light that sweeps around the auth card on
+   hover/focus — rotates while visible. */
+.night .auth-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(
+    from var(--g-angle, 0deg),
+    rgba(34, 211, 238, 0) 0%,
+    rgba(224, 38, 92, 0.9) 20%,
+    rgba(34, 211, 238, 0.55) 42%,
+    rgba(34, 211, 238, 0) 70%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+.night .auth-card:hover::before,
+.night .auth-card:focus-within::before {
+  opacity: 1;
+  animation: gspin 4s linear infinite;
+}
+
+@keyframes ncard-in {
+  from {
+    opacity: 0;
+    transform: translateY(22px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ---- Inputs on night surfaces ---- */
+.night .nfield {
+  width: 100%;
+  border-radius: 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(2, 2, 27, 0.45);
+  padding: 0.7rem 1rem;
+  font-size: 0.9rem;
+  color: var(--n-ink);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+}
+.night .nfield::placeholder {
+  color: var(--n-ink-faint);
+}
+.night .nfield:hover {
+  border-color: rgba(255, 255, 255, 0.28);
+}
+.night .nfield:focus {
+  outline: none;
+  border-color: var(--n-crimson-bright);
+  background: rgba(2, 2, 27, 0.6);
+  box-shadow:
+    0 0 0 3px rgba(177, 19, 69, 0.3),
+    0 0 22px rgba(224, 38, 92, 0.3);
+}
+
+/* ---- Night buttons ---- */
+/* nbtn-primary shares the gbtn ember system (defined below): gradient drifts
+   on hover, sheen sweeps through, glow blooms. */
+.night .nbtn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  border-radius: 999px;
+  background-image: var(--g-ember);
+  background-size: 170% 100%;
+  background-position: 0% 50%;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 0.75rem 1.5rem;
+  border: 1px solid rgba(224, 38, 92, 0.6);
+  box-shadow: 0 10px 30px -10px rgba(177, 19, 69, 0.65);
+  overflow: hidden;
+  position: relative;
+  transition:
+    box-shadow 0.3s ease,
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    background-position 0.5s ease;
+}
+.night .nbtn-primary::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 32%, rgba(255, 255, 255, 0.38) 50%, transparent 68%) no-repeat;
+  background-size: 220% 100%;
+  background-position: 130% 0;
+  transition: background-position 0.7s ease;
+  pointer-events: none;
+}
+.night .nbtn-primary:hover {
+  transform: translateY(-2px);
+  background-position: 85% 50%;
+  box-shadow:
+    0 0 0 1px rgba(224, 38, 92, 0.5),
+    0 0 32px rgba(224, 38, 92, 0.42),
+    0 18px 44px -12px rgba(177, 19, 69, 0.7);
+}
+.night .nbtn-primary:hover::after {
+  background-position: -60% 0;
+}
+.night .nbtn-primary:active {
+  transform: translateY(0) scale(0.98);
+}
+.night .nbtn-primary:focus-visible {
+  outline: 2px solid var(--n-cyan);
+  outline-offset: 2px;
+}
+.night .nbtn-primary:disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+/* Secondary / outline night button. */
+.night .nbtn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--n-edge);
+  background: rgba(2, 2, 27, 0.35);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  color: var(--n-ink);
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 0.75rem 1.5rem;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease, transform 0.3s ease;
+}
+.night .nbtn-ghost:hover {
+  border-color: var(--n-cyan);
+  color: var(--n-cyan);
+  box-shadow: 0 0 18px rgba(34, 211, 238, 0.25);
+  transform: translateY(-1px);
+}
+.night .nbtn-ghost:focus-visible {
+  outline: 2px solid var(--n-cyan);
+  outline-offset: 2px;
+}
+
+/* ---- Night links: crimson → cyan hover shift ---- */
+.night .nlink {
+  color: var(--n-crimson-bright);
+  font-weight: 600;
+  transition: color 0.25s ease, text-shadow 0.25s ease;
+}
+.night .nlink:hover {
+  color: var(--n-cyan);
+  text-shadow: 0 0 14px rgba(34, 211, 238, 0.45);
+}
+
+/* ---- Night pills (role tabs, chips) ---- */
+.night .npill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 999px;
+  border: 1px solid var(--n-edge-soft);
+  background: rgba(2, 2, 27, 0.4);
+  padding: 0.3rem 0.8rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--n-ink-dim);
+  transition: border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+}
+.night .npill:hover {
+  border-color: rgba(224, 38, 92, 0.5);
+  color: var(--n-ink);
+}
+.night .npill--active {
+  border-color: rgba(224, 38, 92, 0.65);
+  background: rgba(177, 19, 69, 0.18);
+  color: #fff;
+  box-shadow: 0 0 16px rgba(177, 19, 69, 0.35);
+}
+
+/* ---- Night form labels ---- */
+.night .nlabel {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--n-ink-dim);
+  margin-bottom: 0.4rem;
+}
+
+/* Landing page forces the night identity regardless of the global theme. */
+.landing-night {
+  /* Own stacking context so the fixed splash layers (z-index -1/-2) always
+     paint above this canvas color, regardless of what GSAP does to the root. */
+  isolation: isolate;
+  background-color: var(--n-canvas);
+}
+
+/* Waveform bars pick up the splash-image cyan on night surfaces. */
+.night .lwave-bar {
+  /* Splash-image gradient per bar: cyan tops melting into crimson. */
+  background: linear-gradient(180deg, var(--n-cyan) 0%, var(--n-crimson-bright) 100%);
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.35);
+}
+
+/* ==========================================================================
+   GRADIENT GLOW & MOTION SYSTEM — the palette as moving light.
+   Ember (crimson CTAs), Aurora (cyan→ink→crimson words), Royal (indigo→plum
+   surfaces), Cool (cyan→crimson data). Cards spin a conic glow ring on
+   hover, buttons sweep a sheen, headings shimmer. Every loop is disabled
+   under prefers-reduced-motion (block at the end of this file).
+   ========================================================================== */
+@property --g-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+:root {
+  --g-ember: linear-gradient(120deg, #b11345 0%, #e0265c 48%, #ff5c8a 100%);
+  --g-aurora: linear-gradient(100deg, #22d3ee 0%, #f2f2f8 42%, #e0265c 95%);
+  --g-royal: linear-gradient(140deg, #0b0443 0%, #250636 48%, #311a46 100%);
+  --g-cool: linear-gradient(90deg, #22d3ee 0%, #b11345 100%);
+}
+
+/* ---- Words: aurora shimmer on display text, ember on numerals ---- */
+.night .gtext,
+.night .gnum {
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+.night .gtext {
+  background-image: var(--g-aurora);
+  background-size: 220% 100%;
+  animation: gtext-drift 9s ease-in-out infinite alternate;
+}
+.night .gnum {
+  background-image: var(--g-ember);
+  background-size: 160% 100%;
+  animation: gtext-drift 7s ease-in-out infinite alternate;
+}
+.night .gnum-cool {
+  background-image: var(--g-cool);
+  background-size: 200% 100%;
+  animation: gtext-drift 6s ease-in-out infinite alternate;
+}
+@keyframes gtext-drift {
+  from { background-position: 0% 50%; }
+  to { background-position: 100% 50%; }
+}
+
+/* ---- Cards: rotating conic glow ring on hover ---- */
+.night .lglass,
+.night .form-card,
+.night .app-card {
+  position: relative;
+}
+.night .lglass::after,
+.night .form-card::after,
+.night .app-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(
+    from var(--g-angle),
+    rgba(34, 211, 238, 0) 0%,
+    rgba(224, 38, 92, 0.9) 18%,
+    rgba(34, 211, 238, 0.55) 38%,
+    rgba(34, 211, 238, 0) 62%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.45s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+.night .lglass:hover::after,
+.night .form-card:hover::after,
+.night .app-card:hover::after,
+.night .form-card:focus-within::after {
+  opacity: 1;
+  animation: gspin 3.6s linear infinite;
+}
+/* The hero showcase card wears its ring permanently — slower, calmer — and
+   its shadow breathes. */
+/* The nav bar is chrome, not a card: no hover ring there. */
+.night .lnav .lglass::after {
+  display: none;
+}
+.night .hero-card {
+  animation: gcard-breathe 5.5s ease-in-out infinite;
+}
+.night .hero-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.2px;
+  background: conic-gradient(
+    from var(--g-angle),
+    rgba(34, 211, 238, 0) 0%,
+    rgba(224, 38, 92, 0.75) 22%,
+    rgba(34, 211, 238, 0.5) 45%,
+    rgba(34, 211, 238, 0) 75%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.85;
+  animation: gspin 9s linear infinite;
+  pointer-events: none;
+}
+@keyframes gspin {
+  to { --g-angle: 360deg; }
+}
+@keyframes gcard-breathe {
+  0%, 100% {
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.06) inset,
+      0 16px 40px -16px rgba(2, 2, 27, 0.65),
+      0 0 24px rgba(177, 19, 69, 0.12);
+  }
+  50% {
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.06) inset,
+      0 16px 40px -16px rgba(2, 2, 27, 0.65),
+      0 0 44px rgba(177, 19, 69, 0.26);
+  }
+}
+
+/* ---- Cursor spotlight (feature cards): a soft ember/cyan pool that follows
+   the pointer. JS writes --mx/--my in px on the hovered card; touch devices
+   and reduced-motion never attach the listener. */
+.night .feature-card .spotlight {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  background: radial-gradient(
+    11rem circle at var(--mx, 50%) var(--my, 50%),
+    rgba(224, 38, 92, 0.17),
+    rgba(34, 211, 238, 0.10) 42%,
+    transparent 68%
+  );
+}
+.night .feature-card:hover .spotlight {
+  opacity: 1;
+}
+/* Keep card content above the spotlight wash. */
+.night .feature-card > :not(.spotlight) {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---- Buttons: ember gradient, sheen sweep, glow bloom ---- */
+.night .gbtn {
+  position: relative;
+  overflow: hidden;
+  background-image: var(--g-ember);
+  background-size: 170% 100%;
+  background-position: 0% 50%;
+  border: 1px solid rgba(224, 38, 92, 0.55);
+  box-shadow: 0 10px 30px -10px rgba(177, 19, 69, 0.65);
+  transition:
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.3s ease,
+    background-position 0.5s ease;
+}
+.night .gbtn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 32%, rgba(255, 255, 255, 0.38) 50%, transparent 68%) no-repeat;
+  background-size: 220% 100%;
+  background-position: 130% 0;
+  transition: background-position 0.7s ease;
+  pointer-events: none;
+}
+.night .gbtn:hover {
+  transform: translateY(-2px);
+  background-position: 85% 50%;
+  box-shadow:
+    0 0 0 1px rgba(224, 38, 92, 0.5),
+    0 0 32px rgba(224, 38, 92, 0.42),
+    0 18px 44px -12px rgba(177, 19, 69, 0.7);
+}
+.night .gbtn:hover::after {
+  background-position: -60% 0;
+}
+.night .gbtn:active {
+  transform: translateY(0) scale(0.98);
+}
+/* Hero + nav primary CTAs breathe while idle. */
+.night .gbtn-pulse {
+  animation: gbtn-breathe 3.4s ease-in-out infinite;
+}
+@keyframes gbtn-breathe {
+  0%, 100% { box-shadow: 0 10px 30px -10px rgba(177, 19, 69, 0.55); }
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(224, 38, 92, 0.35),
+      0 0 30px rgba(224, 38, 92, 0.35),
+      0 14px 36px -10px rgba(177, 19, 69, 0.65);
+  }
+}
+/* Ghost buttons: gradient glow halo on hover. */
+.night .gbtn-ghost {
+  transition:
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.35s ease,
+    border-color 0.35s ease,
+    color 0.3s ease;
+}
+.night .gbtn-ghost:hover {
+  transform: translateY(-2px);
+  border-color: rgba(224, 38, 92, 0.55);
+  color: #fff;
+  box-shadow:
+    0 0 0 1px rgba(224, 38, 92, 0.35),
+    0 0 26px rgba(224, 38, 92, 0.28),
+    0 14px 34px -14px rgba(2, 2, 27, 0.8);
+}
+.night .gbtn-ghost:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* ---- Links: cool gradient underline slides in ---- */
+.night .glink {
+  background-image: var(--g-cool);
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 0% 1.5px;
+  padding-bottom: 2px;
+  transition: background-size 0.35s ease, color 0.25s ease;
+}
+.night .glink:hover {
+  background-size: 100% 1.5px;
+}
+
+/* ---- Small luminous details ---- */
+.night .type-caret {
+  background-color: transparent;
+  background-image: var(--g-ember);
+  box-shadow: 0 0 14px rgba(224, 38, 92, 0.55);
+}
+.night .aprogress-fill {
+  background-image: var(--g-cool);
+  background-size: 200% 100%;
+  animation: gslide 2.8s linear infinite;
+}
+@keyframes gslide {
+  from { background-position: 0% 50%; }
+  to { background-position: -200% 50%; }
+}
+@keyframes pstep-glow {
+  0%, 100% { box-shadow: 0 6px 20px -6px rgba(177, 19, 69, 0.6); }
+  50% {
+    box-shadow:
+      0 0 0 4px rgba(224, 38, 92, 0.18),
+      0 0 26px rgba(224, 38, 92, 0.5);
+  }
+}
+.night .logo-tile {
+  background-color: transparent;
+  background-image: var(--g-ember);
+  border: 1px solid rgba(224, 38, 92, 0.5);
+  box-shadow: 0 6px 18px -6px rgba(177, 19, 69, 0.55);
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+.night a:hover .logo-tile {
+  transform: translateY(-1px);
+  box-shadow: 0 0 22px rgba(224, 38, 92, 0.4);
+}
+/* FAQ open-state icon: ember instead of white. */
+.night .faq-open {
+  background-color: transparent;
+  background-image: var(--g-ember);
+  color: #fff;
+  border-color: rgba(224, 38, 92, 0.5);
+}
+/* The backdrop's crimson accent slowly drifts — the background breathes. */
+.night-veil {
+  overflow: hidden;
+}
+.night-veil::after {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  background: radial-gradient(40rem 26rem at 70% 30%, rgba(224, 38, 92, 0.1), transparent 60%);
+  pointer-events: none;
+  animation: gbreath 16s ease-in-out infinite alternate;
+}
+@keyframes gbreath {
+  from {
+    transform: translate3d(-2%, -1%, 0) scale(1);
+    opacity: 0.7;
+  }
+  to {
+    transform: translate3d(2%, 2%, 0) scale(1.08);
+    opacity: 1;
+  }
+}
+
+/* ---- Signed-in dark pages: modest share of the same life ---- */
+.dark .app-card--hover {
+  transition: box-shadow 0.35s ease, transform 0.35s ease;
+}
+.dark .app-card--hover:hover {
+  box-shadow:
+    0 0 0 1px rgba(224, 38, 92, 0.22),
+    0 0 26px rgba(177, 19, 69, 0.14),
+    0 12px 28px -12px rgba(0, 0, 0, 0.6);
+}
+.dark .abtn-primary {
+  position: relative;
+  overflow: hidden;
+}
+.dark .abtn-primary::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 32%, rgba(255, 255, 255, 0.3) 50%, transparent 68%) no-repeat;
+  background-size: 220% 100%;
+  background-position: 130% 0;
+  transition: background-position 0.7s ease;
+  pointer-events: none;
+}
+.dark .abtn-primary:hover::after {
+  background-position: -60% 0;
+}
+.dark .aprogress-fill {
+  background-size: 200% 100%;
+  animation: gslide 3.2s linear infinite;
+}
+
+/* ---- Royal tier: wizard step 2/3 cards ------------------------------
+   Step 1 keeps the strong ember/aurora identity; later steps wear the
+   quieter indigo→plum→mauve Royal gradient so the deeper you go into
+   signup, the calmer the surface. Same glow ring + spotlight behavior. */
+.night .form-card {
+  background:
+    linear-gradient(155deg, rgba(11, 4, 67, 0.88) 0%, rgba(37, 6, 54, 0.84) 55%, rgba(49, 26, 70, 0.80) 100%);
+  border: 1px solid var(--n-edge);
+  border-radius: 1.5rem;
+  -webkit-backdrop-filter: blur(22px);
+  backdrop-filter: blur(22px);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.07) inset,
+    0 32px 80px -24px rgba(2, 2, 27, 0.8);
+  transition:
+    border-color 0.35s ease,
+    box-shadow 0.35s ease,
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.night .form-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--n-edge-bright);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.09) inset,
+    0 0 0 1px rgba(177, 19, 69, 0.38),
+    0 0 36px rgba(177, 19, 69, 0.3),
+    0 36px 88px -28px rgba(2, 2, 27, 0.85);
+}
+/* Royal edge light: the ring sweeps on hover/focus like the ember tier. */
+.night .form-card::after {
+  background: conic-gradient(
+    from var(--g-angle),
+    rgba(34, 211, 238, 0) 0%,
+    rgba(49, 26, 70, 0.95) 22%,
+    rgba(34, 211, 238, 0.6) 45%,
+    rgba(34, 211, 238, 0) 75%
+  );
+}
+/* Wizard titles in the cool gradient (still static-safe: no CSS anim on
+   these — they use the drift only under .gtext; titles here get a gentle
+   one-shot fallback color if animations are off). */
+.night h1.gh-cool,
+.night .gh-cool {
+  background-image: var(--g-cool);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: gtext-drift 8s ease-in-out infinite alternate;
+}
+/* Focus states inside Royal cards: cyan ring (the tier's echo color). */
+.night .form-card .nfield:focus {
+  box-shadow:
+    0 0 0 3px rgba(34, 211, 238, 0.22),
+    0 0 20px rgba(34, 211, 238, 0.22);
+}
+/* Cursor spotlight: Royal tier gets a cyan-leaning pool. */
+.night .form-card .spotlight {
+  background: radial-gradient(
+    11rem circle at var(--mx, 50%) var(--my, 50%),
+    rgba(34, 211, 238, 0.14),
+    rgba(177, 19, 69, 0.08) 45%,
+    transparent 70%
+  );
+}
+
+/* Wizard/app buttons inside night pages join the ember system. */
+.night .abtn-primary {
+  position: relative;
+  overflow: hidden;
+  background-image: var(--g-ember);
+  background-size: 170% 100%;
+  background-position: 0% 50%;
+  border: 1px solid rgba(224, 38, 92, 0.55);
+  color: #fff;
+  box-shadow: 0 10px 30px -10px rgba(177, 19, 69, 0.65);
+  transition:
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.3s ease,
+    background-position 0.5s ease;
+}
+.night .abtn-primary::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 32%, rgba(255, 255, 255, 0.38) 50%, transparent 68%) no-repeat;
+  background-size: 220% 100%;
+  background-position: 130% 0;
+  transition: background-position 0.7s ease;
+  pointer-events: none;
+}
+.night .abtn-primary:hover {
+  transform: translateY(-2px);
+  background-position: 85% 50%;
+  box-shadow:
+    0 0 0 1px rgba(224, 38, 92, 0.5),
+    0 0 32px rgba(224, 38, 92, 0.42),
+    0 18px 44px -12px rgba(177, 19, 69, 0.7);
+}
+.night .abtn-primary:hover::after {
+  background-position: -60% 0;
+}
+.night .abtn-primary:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* ---- Testimonial marquee: two rows drifting opposite ways ------------
+   The track is two copies of the same stories laid out inline; animating
+   translateX by exactly one copy width (-50% / +50%) makes the loop
+   seamless. Duration is slow enough to read a card as it passes. */
+.band-track {
+  display: flex;
+  width: max-content;
+}
+.band-track--rtl {
+  animation: band-drift-left 46s linear infinite;
+}
+.band-track--ltr {
+  animation: band-drift-right 54s linear infinite;
+}
+.band-track--paused {
+  animation-play-state: paused;
+}
+.band-copy {
+  display: flex;
+  gap: 1rem;
+  padding-right: 1rem; /* gap between the loop's seam too */
+}
+.band-copy .band-card {
+  scroll-snap-align: center; /* harmless; aids any future swipe mode */
+}
+@keyframes band-drift-left {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@keyframes band-drift-right {
+  from { transform: translateX(-50%); }
+  to { transform: translateX(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .band-track--rtl,
+  .band-track--ltr {
+    animation: none;
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .band-track .band-copy[aria-hidden="true"] {
+    display: none;
+  }
+}
+
+/* ---- Verification code digits: glass wells in the tier echo color ---- */
+.night .code-digit {
+  background: rgba(2, 2, 27, 0.55);
+  border-color: var(--n-edge);
+  color: #fff;
+  border-radius: 0.75rem;
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease,
+    background-color 0.25s ease;
+}
+.night .code-digit:focus {
+  outline: none;
+  border-color: rgba(34, 211, 238, 0.75);
+  background: rgba(11, 4, 67, 0.72);
+  box-shadow:
+    0 0 0 3px rgba(34, 211, 238, 0.2),
+    0 0 18px rgba(34, 211, 238, 0.28);
+}
+
+/* ---- Reduced motion: freeze every new loop, keep the static gradients ---- */
+@media (prefers-reduced-motion: reduce) {
+  .night .gtext,
+  .night .gnum,
+  .night .gnum-cool,
+  .night .gh-cool,
+  .night .hero-card,
+  .night .gbtn-pulse,
+  .night .pstep--active,
+  .night .aprogress-fill,
+  .night-veil::after,
+  .night .lglass::after,
+  .night .form-card::after,
+  .night .app-card::after,
+  .night .hero-card::after,
+  .night .auth-card::before,
+  .dark .aprogress-fill {
+    animation: none !important;
+  }
+  .night .gbtn::after,
+  .night .nbtn-primary::after,
+  .dark .abtn-primary::after {
+    display: none;
+  }
+}
+
+/* ---- Landing glass classes, night-tinted ---- */
+.night .lglass {
+  /* Nav over a photo-forward backdrop: light glass so the image shows through. */
+  background: linear-gradient(180deg, rgba(2, 2, 27, 0.55), rgba(11, 4, 67, 0.30));
+  border-color: var(--n-edge);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 16px 40px -16px rgba(2, 2, 27, 0.65);
+}
+
+.night .lglass-hover:hover {
+  border-color: var(--n-edge-bright);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.08) inset,
+    0 0 0 1px rgba(177, 19, 69, 0.35),
+    0 0 30px rgba(177, 19, 69, 0.28),
+    0 26px 56px -18px rgba(2, 2, 27, 0.75);
+}
+
+.night .lglass-deep {
+  background: var(--n-glass-strong);
+  border-color: var(--n-edge);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.07) inset,
+    0 32px 80px -24px rgba(2, 2, 27, 0.8);
+}
+
+.night .lchip {
+  border-color: rgba(224, 38, 92, 0.35);
+  background: rgba(177, 19, 69, 0.16);
+  color: #f6d9e2;
+}
+
+.night .ldivider {
+  border-color: rgba(255, 255, 255, 0.07);
+}
+
+.night .lnav.is-scrolled {
+  background: rgba(2, 2, 27, 0.88);
+}
+
+.night ::selection {
+  background: rgba(177, 19, 69, 0.55);
+  color: #fff;
+}
+
+/* ==========================================================================
+   DASHBOARD SHELL + DESIGN — "floating canvas on colored rail"
+   Reference look: a fixed crimson sidebar, a white edge-to-edge topbar
+   (page title, welcome + avatar, search), and the page rendered on a
+   rounded floating canvas over a soft gray backdrop. Cards are WHITE and
+   separate — none of the frosted-glass blur. Accent: the palette ember.
+   The .dark theme remaps canvas/cards to near-black glass, same geometry.
+   ========================================================================== */
+.dash-root {
+  --dash-accent: #e0265c;
+  --dash-accent-deep: #b11345;
+  --dash-rail: linear-gradient(180deg, #1e40af 0%, #1d4ed8 55%, #1e3a8a 100%); /* navy blue-700 rail */
+  --dash-canvas: #f4f5f7;
+  --dash-card: #ffffff;
+  --dash-card-border: rgba(15, 40, 90, 0.07);
+  --dash-card-shadow: 0 1px 2px rgba(15, 40, 90, 0.05), 0 10px 28px -12px rgba(15, 40, 90, 0.14);
+  --dash-card-hover-shadow: 0 2px 6px rgba(15, 40, 90, 0.06), 0 14px 34px -14px rgba(15, 40, 90, 0.22);
+  --dash-link: #1d4ed8;
+  --dash-link-strong: #1e40af;
+  --dash-ink: #17203a;
+  --dash-ink-soft: #5b6478;
+  --dash-ink-faint: #9aa3b5;
+  --dash-line: #e8ebf1;
+  --dash-topbar: #ffffff;
+  --dash-topbar-border: #edf0f4;
+  min-height: 100vh;
+  background: var(--dash-canvas);
+  color: var(--dash-ink);
+}
+
+/* Light body aurora shouldn't bleed behind the shell's own backdrop */
+.dash-root {
+  isolation: isolate;
+}
+
+/* ---- Sidebar ---- */
+.dash-sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: 240px;
+  z-index: 40;
+  background: var(--dash-rail);
+  box-shadow: 4px 0 24px rgba(29, 78, 216, 0.3);
+}
+/* Mobile drawer variant: sits inside the fixed overlay (absolute, full height)
+   and slides in from the left. Same crimson rail as the desktop sidebar. */
+/* Mobile menu sheet: drops down directly below the header. The header is a
+   sticky bar at top:0 with a 4rem row; the sheet is pinned under it so it
+   appears to unfold from the menu button. Same crimson rail inside. */
+.dash-menu-sheet {
+  position: fixed;
+  top: 4rem; /* just below the header row */
+  left: 0;
+  right: 0;
+  height: min(24rem, calc(100dvh - 4rem));
+  overflow-y: auto;
+  z-index: 51;
+  background: var(--dash-rail);
+  box-shadow: 0 24px 48px -12px rgba(2, 2, 27, 0.45);
+  transform-origin: top center;
+  animation: dash-sheet-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes dash-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scaleY(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
+}
+.dash-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 2rem;
+  width: 2rem;
+  border-radius: 0.65rem;
+  background: #ffffff;
+  color: #1d4ed8; /* logo letter picks up the navy rail */
+  font-size: 1rem;
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+}
+.dash-link {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  border-radius: 0.75rem;
+  padding: 0.65rem 0.9rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.82);
+  transition: background-color 0.25s ease, color 0.25s ease, transform 0.25s ease;
+}
+.dash-link:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.12);
+  transform: translateX(2px);
+}
+.dash-link--active {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow: inset 3px 0 0 #ffffff;
+}
+.dash-link-pill {
+  margin-left: auto;
+  height: 6px;
+  width: 6px;
+  border-radius: 999px;
+  background: #ffd166;
+}
+.dash-logout {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #ffffff;
+  transition: background-color 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
+}
+.dash-logout:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.6);
+  transform: translateY(-1px);
+}
+
+/* ---- Topbar ---- */
+.dash-topbar {
+  background: var(--dash-topbar);
+  border-bottom: 1px solid var(--dash-topbar-border);
+}
+.dash-welcome {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--dash-accent-deep);
+}
+.dash-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 2rem;
+  width: 2rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #e0265c, #b11345);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  box-shadow: 0 2px 8px rgba(177, 19, 69, 0.35);
+}
+.dash-search {
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--dash-line);
+  background: #f7f8fa;
+  padding: 0.4rem 0.9rem;
+}
+.dash-search input {
+  width: 11rem;
+  border: none;
+  background: transparent;
+  font-size: 0.8rem;
+  color: var(--dash-ink);
+  outline: none;
+}
+/* Mobile variant: fills the space between the menu button and the toggles */
+.dash-search--grow {
+  height: 2.25rem;
+}
+.dash-search--grow input {
+  width: 100%;
+  min-width: 0;
+}
+.dash-search input::placeholder {
+  color: var(--dash-ink-faint);
+}
+.dash-search:focus-within {
+  border-color: rgba(19, 90, 173, 0.5);
+  box-shadow: 0 0 0 3px rgba(19, 90, 173, 0.10);
+}
+.dash-iconbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.25rem;
+  width: 2.25rem;
+  border-radius: 999px;
+  border: 1px solid var(--dash-line);
+  background: #fff;
+  color: var(--dash-ink-soft);
+  transition: border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+}
+.dash-iconbtn:hover {
+  color: var(--dash-link);
+  border-color: rgba(19, 90, 173, 0.4);
+  transform: translateY(-1px);
+}
+
+/* ---- Floating canvas ---- */
+.dash-canvas {
+  padding: 1.5rem 1rem 3rem;
+}
+@media (min-width: 640px) {
+  .dash-canvas {
+    padding: 2rem 2rem 4rem;
+  }
+}
+.dash-canvas > * {
+  max-width: 72rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ---- Hero banner ---- */
+.dash-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.25rem;
+  border: 1px solid var(--dash-card-border);
+  background: var(--dash-card);
+  box-shadow: var(--dash-card-shadow);
+  padding: 1.25rem 1.5rem;
+}
+/* Big date day-number in the next-interview hero */
+.dash-huge {
+  font-size: clamp(2.4rem, 5vw, 3.4rem);
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--dash-ink);
+}
+.dash-day-month {
+  margin-top: 0.2rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--dash-link);
+}
+
+/* ---- Quiet overview strip: one line of facts, not a row of tiles ---- */
+.dash-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 1.75rem;
+  border: 1px solid var(--dash-card-border);
+  background: var(--dash-card);
+  border-radius: 1rem;
+  box-shadow: var(--dash-card-shadow);
+  padding: 0.8rem 1.25rem;
+}
+.dash-strip-item {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--dash-ink-soft);
+}
+.dash-strip-item strong {
+  margin-left: 0.35rem;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--dash-ink);
+}
+
+/* Secondary buttons on the canvas: their translucent glass fill is tuned for
+   photo backgrounds — on white cards they vanish. Give them a solid fill. */
+.dash-canvas .abtn-outline {
+  border-color: var(--dash-line);
+  background: #ffffff;
+}
+.dash-canvas .abtn-outline:hover {
+  border-color: rgba(19, 90, 173, 0.45);
+  color: var(--dash-link);
+  background: #f8fafd;
+}
+
+/* Muted text link (e.g. "View report") — indigo, quiet */
+.dash-textlink {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--dash-link);
+  transition: color 0.2s ease;
+}
+.dash-textlink:hover {
+  color: var(--dash-link-strong);
+}
+
+/* ---- Section card + titles ---- */
+.dash-card {
+  border-radius: 1.25rem;
+  border: 1px solid var(--dash-card-border);
+  background: var(--dash-card);
+  box-shadow: var(--dash-card-shadow);
+  padding: 1.25rem 1.4rem;
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.dash-card-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--dash-ink);
+}
+/* ---- Skill legend rows ---- */
+.dash-skill {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--dash-ink-soft);
+}
+.dash-skill-dot {
+  height: 8px;
+  width: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/* ---- Rating rows (photo's "Your Ratings" list) ---- */
+.dash-rate-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  border-radius: 0.9rem;
+  border: 1px solid transparent;
+  padding: 0.55rem 0.6rem;
+  transition: background-color 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
+}
+.dash-rate-row:hover {
+  background: #fafbfc;
+  border-color: rgba(19, 90, 173, 0.20);
+}
+.dash-avatar-sm {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 2rem;
+  width: 2rem;
+  border-radius: 999px;
+  flex-shrink: 0;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #1d4ed8, #22d3ee);
+}
+
+/* ---- Right rail: request rows (photo's "Requests") ---- */
+.dash-rail-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.dash-rail-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: var(--dash-accent);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+.dash-req {
+  border-radius: 0.9rem;
+  border: 1px solid var(--dash-card-border);
+  background: var(--dash-card);
+  box-shadow: var(--dash-card-shadow);
+  padding: 0.65rem 0.7rem;
+  transition: box-shadow 0.3s ease, transform 0.3s ease, border-color 0.3s ease;
+}
+.dash-req:hover {
+  transform: translateY(-1px);
+  border-color: rgba(19, 90, 173, 0.35);
+  box-shadow: 0 10px 26px -14px rgba(15, 40, 90, 0.25);
+}
+.dash-req-actions {
+  display: flex;
+  gap: 0.4rem;
+  justify-content: flex-end;
+}
+.dash-reqbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.6rem;
+  width: 1.6rem;
+  border-radius: 0.45rem;
+  color: #fff;
+  transition: filter 0.2s ease, transform 0.2s ease;
+}
+.dash-reqbtn:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+.dash-reqbtn--ok { background: #16a34a; }
+.dash-reqbtn--no { background: #ef4444; }
+.dash-reqbtn--view { background: var(--dash-link); }
+
+/* ---- List rows on the canvas (sessions, matches, postings) ---- */
+.dash-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-radius: 0.9rem;
+  border: 1px solid var(--dash-line);
+  background: var(--dash-card);
+  padding: 0.7rem 0.9rem;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+}
+.dash-row:hover {
+  border-color: rgba(19, 90, 173, 0.35);
+  box-shadow: 0 8px 22px -14px rgba(15, 40, 90, 0.22);
+}
+
+/* Star row for ratings */
+.dash-stars {
+  display: inline-flex;
+  gap: 1px;
+  color: #f59e0b;
+}
+
+/* Chips (skills etc.) on white cards */
+.dash-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--dash-line);
+  background: #f7f8fa;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--dash-ink-soft);
+}
+
+/* ---- Dark remap: same geometry, near-black glass surfaces ------------ */
+.dark .dash-root {
+  --dash-canvas: #050505;
+  --dash-card: rgba(255, 255, 255, 0.045);
+  --dash-card-border: rgba(255, 255, 255, 0.09);
+  --dash-card-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --dash-card-hover-shadow: 0 14px 36px rgba(0, 0, 0, 0.7);
+  --dash-link: #93c5fd;
+  --dash-link-strong: #bfdbfe;
+  --dash-ink: #f2f2f2;
+  --dash-ink-soft: #a3a3a3;
+  --dash-ink-faint: #737373;
+  --dash-line: rgba(255, 255, 255, 0.08);
+  --dash-topbar: rgba(5, 5, 5, 0.85);
+  --dash-topbar-border: rgba(255, 255, 255, 0.08);
+}
+.dark .dash-search {
+  background: rgba(255, 255, 255, 0.05);
+}
+.dark .dash-search input {
+  color: #f2f2f2;
+}
+.dark .dash-iconbtn {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #d4d4d4;
+}
+.dark .dash-rate-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+.dark .dash-canvas .abtn-outline {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.05);
+}
+.dark .dash-canvas .abtn-outline:hover {
+  border-color: rgba(147, 197, 253, 0.5);
+  color: var(--dash-link);
+  background: rgba(255, 255, 255, 0.08);
+}
+.dark .dash-chip {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.10);
+  color: #d4d4d4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dash-req, .dash-row, .dash-link, .dash-logout,
+  .dash-iconbtn, .dash-reqbtn, .dash-rate-row, .dash-textlink {
+    transition: none;
+  }
+  .dash-menu-sheet {
+    animation: none;
+  }
+}
+
+
+
+/* ===========================================================================
+   Live interview room — full-viewport takeover
+   The session page renders outside the dashboard shell, so it paints its own
+   environment: near-black stage, slim topbar, video-call-style controls.
+   =========================================================================== */
+
+.room-shell {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(1100px 500px at 50% -10%, rgba(19, 90, 173, 0.16), transparent 60%),
+    #0b0f17;
+  color: #e2e8f0;
+}
+
+.room-topbar {
+  position: relative;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 1rem;
+  flex-shrink: 0;
+  background: #0b0f17; /* solid chrome above the framed video tile */
+}
+
+.room-brand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.75rem;
+  width: 1.75rem;
+  flex-shrink: 0;
+  border-radius: 0.5rem;
+  background: #e0265c;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.room-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 999px;
+  padding: 0.25rem 0.7rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.room-status--live {
+  background: rgba(244, 63, 94, 0.14);
+  color: #fda4af;
+}
+.room-status--done {
+  background: rgba(52, 211, 153, 0.14);
+  color: #6ee7b7;
+}
+
+.room-iconbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.1rem;
+  width: 2.1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: #cbd5e1;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.room-iconbtn:hover {
+  background: rgba(255, 255, 255, 0.09);
+  color: #fff;
+}
+
+.room-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  background: #e0265c;
+  padding: 0.6rem 1.4rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #fff;
+  transition: filter 0.2s ease, transform 0.15s ease;
+}
+.room-btn-primary:hover { filter: brightness(1.08); }
+.room-btn-primary:active { transform: scale(0.98); }
+
+.room-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.03);
+  color: #cbd5e1;
+  padding: 0.55rem 1.1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+.room-btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.room-btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border-radius: 999px;
+  background: #b11345;
+  color: #fff;
+  padding: 0.55rem 1.1rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  transition: filter 0.2s ease;
+}
+.room-btn-danger:hover { filter: brightness(1.1); }
+
+.room-stage {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.room-panel {
+  border-radius: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.015));
+  padding: 1.25rem 1.4rem;
+}
+
+.room-pip {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  width: 7rem;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 0.85rem;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  background: #020617;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+@media (min-width: 640px) {
+  .room-pip { width: 10rem; }
+}
+
+.room-textarea {
+  width: 100%;
+  border-radius: 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.7rem 0.95rem;
+  font-size: 0.875rem;
+  color: #f1f5f9;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.room-textarea::placeholder { color: #64748b; }
+.room-textarea:focus {
+  outline: none;
+  border-color: rgba(224, 38, 92, 0.6);
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow: 0 0 0 4px rgba(224, 38, 92, 0.12);
+}
+
+/* Reduced motion: the room is static but fully usable */
+@media (prefers-reduced-motion: reduce) {
+  .room-shell, .room-topbar, .room-panel, .room-pip,
+  .room-btn-primary, .room-btn-ghost, .room-btn-danger,
+  .room-iconbtn, .room-textarea {
+    transition: none;
+    animation: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Conversational room: always-on mic, live transcript drawer
+   --------------------------------------------------------------------------- */
+
+/* Always-on mic button: quiet when idle, breathing crimson when live,
+   slate when muted. `mic-live` keeps the legacy pulse ring working. */
+.room-micbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border-radius: 999px;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.04);
+  color: #cbd5e1;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+.room-micbtn:hover {
+  background: rgba(255, 255, 255, 0.09);
+  color: #fff;
+}
+.room-micbtn--live {
+  border-color: rgba(224, 38, 92, 0.55);
+  background: rgba(224, 38, 92, 0.16);
+  color: #fda4af;
+  animation: room-mic-breathe 2.4s ease-in-out infinite;
+}
+.room-micbtn--off {
+  color: #64748b;
+  border-color: rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.02);
+}
+@keyframes room-mic-breathe {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(224, 38, 92, 0.28); }
+  50% { box-shadow: 0 0 0 7px rgba(224, 38, 92, 0); }
+}
+
+/* Live transcript — a floating glass drawer over the video, like a call's
+   chat panel. Docked top-right on all desktop widths: bottom-right belongs
+   to the self-view PiP, bottom-center to the caption. */
+.room-transcript {
+  position: absolute;
+  top: 4.25rem;
+  right: 1rem;
+  z-index: 20;
+  width: 330px;
+  max-height: min(52vh, 460px);
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(11, 15, 23, 0.66);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.45);
+}
+.room-transcript-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.room-msg {
+  border-radius: 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.035);
+  padding: 0.55rem 0.8rem;
+}
+.room-msg--ai {
+  align-self: flex-start;
+  border-left: 2px solid #1d4ed8;
+}
+.room-msg--you {
+  align-self: flex-end;
+  border-right: 2px solid #e0265c;
+  max-width: 88%;
+}
+.room-msg--interim {
+  opacity: 0.55;
+  font-style: italic;
+}
+.room-msg-role {
+  display: block;
+  margin-bottom: 0.15rem;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+.room-msg--ai .room-msg-role { color: #7ba7d9; }
+.room-msg--you .room-msg-role { color: #e0265c; }
+.room-msg p {
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: #d7dee9;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .room-micbtn--live { animation: none; }
+}
+
+/* ---------------------------------------------------------------------------
+   Full-viewport interviewer portrait — the room IS the video call
+   --------------------------------------------------------------------------- */
+
+/* The portrait layer fills the stage area (the <main> between top bar and
+   composer) — a framed video tile, like a call client's main speaker view. */
+.room-portrait {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 22%; /* face anchor: zoom/nod pivot near the eyes */
+  will-change: transform;
+  transition: transform 0.12s linear;
+  background: #0b0f17;
+  overflow: hidden;
+  border-radius: 1rem; /* soft tile edges inside the stage frame */
+}
+/* Sharp layer: the ENTIRE photo, every pixel visible (contain, centered).
+   No cropping, no bars — the blurred layer behind fills the rest. */
+.room-portrait-photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+/* Ambient backdrop: the same image, enlarged and blurred, filling the tile
+   edge-to-edge so the space around the sharp copy reads as depth, not void. */
+.room-portrait-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 22%;
+  filter: blur(28px) brightness(0.55) saturate(1.15);
+  transform: scale(1.25); /* hide the blur's soft edges */
+  user-select: none;
+  -webkit-user-drag: none;
+}
+/* Idle breathing: an almost-imperceptible drift so the portrait feels present */
+.room-portrait:not(.room-portrait--talking) {
+  animation: room-breathe 6.5s ease-in-out infinite;
+}
+@keyframes room-breathe {
+  0%, 100% { transform: scale(1) translateY(0); }
+  50% { transform: scale(1.006) translateY(-1.5px); }
+}
+/* Talking state transitions take over from the breathing animation */
+.room-portrait--talking {
+  animation: none;
+}
+
+/* A subtle ring that separates the video tile from the room's dark chrome */
+.room-stageframe {
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+}
+
+/* Scrims: darker at the bottom (captions) + a whisper at the top (status). */
+.room-portrait-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  background:
+    linear-gradient(to top, rgba(2, 6, 23, 0.82) 0%, rgba(2, 6, 23, 0.42) 22%, rgba(2, 6, 23, 0) 48%),
+    linear-gradient(to bottom, rgba(2, 6, 23, 0.35) 0%, rgba(2, 6, 23, 0) 14%);
+}
+
+/* Broadcast-style caption over the lower third */
+.room-caption-kicker {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #93c5fd;
+  margin-bottom: 0.3rem;
+}
+.room-caption-text {
+  font-size: 1rem;
+  line-height: 1.55;
+  font-weight: 500;
+  color: #f8fafc;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.65);
+}
+@media (min-width: 640px) {
+  .room-caption-text { font-size: 1.15rem; }
+}
+.room-caption-progress {
+  margin-top: 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #94a3b8;
+}
+.room-caption-badge {
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(2, 6, 23, 0.55);
+  backdrop-filter: blur(6px);
+  padding: 0.3rem 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+/* Composer sits as a solid bar below the framed video tile */
+.room-composerbar {
+  position: relative;
+  z-index: 20;
+  flex-shrink: 0;
+  background: #0b0f17;
+  padding: 0.85rem 1rem;
+}
+.room-composerbar > div { max-width: 640px; margin: 0 auto; }
+
+/* The self-view PiP floats above everything */
+.room-pip { z-index: 20; }
+
+@media (prefers-reduced-motion: reduce) {
+  .room-portrait,
+  .room-portrait:not(.room-portrait--talking) {
+    animation: none;
+    transition: none;
+    transform: none !important;
+  }
+}

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+```````````````````````````
+<title>Dashboard - Student Results System</title>
+
+<link rel="stylesheet" href="css/style.css">
+
+
+</head>
+
+<body>
+
+<nav class="navbar">
+    <h2>🎓 Student Results System</h2>
+
+    <button id="logoutBtn">Logout</button>
+</nav>
+
+
+<main class="dashboard">
+
+    <h1>Welcome to Dashboard </h1>
+    <p>Manage your students, subjects and results from one place.</p>
+
+
+    <div class="dashboard-cards">
+
+        <div class="dashboard-card">
+            <h3>Students</h3>
+            <p id="studentsCount">0</p>
+
+            <a href="students.html">
+                Manage Students
+            </a>
+        </div>
+
+
+        <div class="dashboard-card">
+            <h3>Subjects</h3>
+            <p id="subjectsCount">0</p>
+
+            <a href="subjects.html">
+                Manage Subjects
+            </a>
+        </div>
+
+
+        <div class="dashboard-card">
+            <h3>Results</h3>
+            <p id="resultsCount">0</p>
+
+            <a href="results.html">
+                Manage Results
+            </a>
+        </div>
+
+    </div>
+
+
+    <div class="quick-actions">
+
+        <h2>Quick Actions</h2>
+
+        <a href="students.html">➕ Add Student</a>
+        <a href="subjects.html">➕ Add Subject</a>
+        <a href="results.html">📝 Add Result</a>
+
+    </div>
+
+</main>
+
+
+<script src="js/dashboard.js"></script>
+
+
+</body>
+</html>
